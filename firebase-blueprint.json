@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile containing level and XP information.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "level": { "type": "integer" },
+        "xp": { "type": "integer" },
+        "isDarkMode": { "type": "boolean" },
+        "language": { "type": "string" },
+        "age": { "type": "integer" },
+        "birthdate": { "type": "string" },
+        "name": { "type": "string" },
+        "workouts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string" },
+              "duration": { "type": "integer" },
+              "intensity": { "type": "string" },
+              "calories": { "type": "integer" },
+              "date": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["email", "level", "xp"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A task created by the user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "priority": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "completed"]
+    },
+    "Mission": {
+      "title": "Mission",
+      "description": "A daily or weekly user mission.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "progress": { "type": "number" },
+        "xpReward": { "type": "integer" },
+        "completed": { "type": "boolean" },
+        "claimed": { "type": "boolean" }
+      },
+      "required": ["title", "progress", "completed"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User experience feedback and rating.",
+      "type": "object",
+      "properties": {
+        "rating": { "type": "integer" },
+        "comment": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userLevel": { "type": "integer" },
+        "userXp": { "type": "integer" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["rating", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "The main user document."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Tasks subcollection."
+    },
+    "/users/{userId}/missions/{missionId}": {
+      "schema": "Mission",
+      "description": "Missions subcollection."
+    },
+    "/users/{userId}/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Feedback and ratings subcollection."
+    }
+  }
+}

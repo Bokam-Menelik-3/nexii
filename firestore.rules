@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the caller owns the user document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // User nested subcollections
+    match /users/{userId}/tasks/{taskId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /users/{userId}/missions/{missionId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /users/{userId}/expenses/{expenseId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /users/{userId}/config/{configId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/feedback/{feedbackId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Global community posts collection
+    match /community_posts/{postId} {
+      allow read, create: if isAuthenticated();
+      allow update: if isAuthenticated(); // For liking posts
+      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+
+    // Global feedback collection (any user can submit feedback securely)
+    match /feedbacks/{feedbackId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+  }
+}
