@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A modular Flutter app for productivity, well-being, and financial management.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="nexii">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <title>nexii</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <script>
+    window.NexiiAudioEngine = (function() {
+      var audioCtx = null;
+      var currentAmbientNodes = null;
+
+      function getAudioContext() {
+        if (!audioCtx) {
+          var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
+
+      function stopAmbient() {
+        if (currentAmbientNodes) {
+          try {
+            if (currentAmbientNodes.stop) currentAmbientNodes.stop();
+            if (currentAmbientNodes.gainNode && audioCtx) {
+              currentAmbientNodes.gainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+              setTimeout(function() {
+                try { currentAmbientNodes.disconnect(); } catch(e){}
+              }, 350);
+            }
+          } catch(e) {}
+          currentAmbientNodes = null;
+        }
+      }
+
+      function createNoiseBuffer(ctx, type) {
+        var bufferSize = 2 * ctx.sampleRate;
+        var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        var output = buffer.getChannelData(0);
+        var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        var lastOut = 0.0;
+
+        for (var i = 0; i < bufferSize; i++) {
+          var white = Math.random() * 2 - 1;
+          if (type === 'pink') {
+            b0 = 0.99886 * b0 + white * 0.0555179;
+            b1 = 0.99332 * b1 + white * 0.0750759;
+            b2 = 0.96900 * b2 + white * 0.1538520;
+            b3 = 0.86650 * b3 + white * 0.3104856;
+            b4 = 0.55000 * b4 + white * 0.5329522;
+            b5 = -0.7616 * b5 - white * 0.0168980;
+            output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+            output[i] *= 0.11;
+            b6 = white * 0.115926;
+          } else if (type === 'brown') {
+            output[i] = (lastOut + (0.02 * white)) / 1.02;
+            lastOut = output[i];
+            output[i] *= 3.5;
+          } else {
+            output[i] = white * 0.15;
+          }
+        }
+        return buffer;
+      }
+
+      function playSingingBowl(ctx, destination, freq) {
+        try {
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq || 528, ctx.currentTime);
+
+          gain.gain.setValueAtTime(0.001, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3.0);
+
+          osc.connect(gain);
+          gain.connect(destination || ctx.destination);
+
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 3.1);
+        } catch(e) {}
+      }
+
+      function playAmbient(soundType) {
+        stopAmbient();
+        var ctx = getAudioContext();
+        if (!ctx) return;
+
+        var masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(0.01, ctx.currentTime);
+        masterGain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.8);
+        masterGain.connect(ctx.destination);
+
+        if (soundType === 'Pluie' || soundType === 'Pluie en Forêt') {
+          var noiseBuffer = createNoiseBuffer(ctx, 'pink');
+          var noiseSource = ctx.createBufferSource();
+          noiseSource.buffer = noiseBuffer;
+          noiseSource.loop = true;
+
+          var filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 900;
+
+          var lfo = ctx.createOscillator();
+          lfo.frequency.value = 0.25;
+          var lfoGain = ctx.createGain();
+          lfoGain.gain.value = 350;
+          lfo.connect(lfoGain);
+          lfoGain.connect(filter.frequency);
+          lfo.start();
+
+          noiseSource.connect(filter);
+          filter.connect(masterGain);
+          noiseSource.start();
+
+          currentAmbientNodes = {
+            stop: function() {
+              try { noiseSource.stop(); lfo.stop(); } catch(e){}
+            },
+            gainNode: masterGain,
+            disconnect: function() { noiseSource.disconnect(); filter.disconnect(); masterGain.disconnect(); }
+          };
+        } else if (soundType === 'Océan' || soundType === 'Océan Zen') {
+          var noiseBuffer = createNoiseBuffer(ctx, 'pink');
+          var noiseSource = ctx.createBufferSource();
+          noiseSource.buffer = noiseBuffer;
+          noiseSource.loop = true;
+
+          var filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 450;
+
+          var lfo = ctx.createOscillator();
+          lfo.frequency.value = 0.12;
+          var lfoGain = ctx.createGain();
+          lfoGain.gain.value = 400;
+          lfo.connect(lfoGain);
+          lfoGain.connect(filter.frequency);
+          lfo.start();
+
+          noiseSource.connect(filter);
+          filter.connect(masterGain);
+          noiseSource.start();
+
+          currentAmbientNodes = {
+            stop: function() {
+              try { noiseSource.stop(); lfo.stop(); } catch(e){}
+            },
+            gainNode: masterGain,
+            disconnect: function() { noiseSource.disconnect(); filter.disconnect(); masterGain.disconnect(); }
+          };
+        } else if (soundType === 'Forêt Zen' || soundType === 'Forêt') {
+          var noiseBuffer = createNoiseBuffer(ctx, 'pink');
+          var noiseSource = ctx.createBufferSource();
+          noiseSource.buffer = noiseBuffer;
+          noiseSource.loop = true;
+
+          var filter = ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.value = 550;
+          filter.Q.value = 2.0;
+
+          var windGain = ctx.createGain();
+          windGain.gain.value = 0.15;
+
+          noiseSource.connect(filter);
+          filter.connect(windGain);
+          windGain.connect(masterGain);
+          noiseSource.start();
+
+          var chimeInterval = setInterval(function() {
+            if (!currentAmbientNodes) { clearInterval(chimeInterval); return; }
+            playSingingBowl(ctx, masterGain, 432);
+          }, 4500);
+
+          currentAmbientNodes = {
+            stop: function() {
+              try { noiseSource.stop(); clearInterval(chimeInterval); } catch(e){}
+            },
+            gainNode: masterGain,
+            disconnect: function() { noiseSource.disconnect(); filter.disconnect(); masterGain.disconnect(); }
+          };
+        } else if (soundType === 'Feu de Bois' || soundType === 'Feu') {
+          var noiseBuffer = createNoiseBuffer(ctx, 'brown');
+          var noiseSource = ctx.createBufferSource();
+          noiseSource.buffer = noiseBuffer;
+          noiseSource.loop = true;
+
+          var filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 650;
+
+          noiseSource.connect(filter);
+          filter.connect(masterGain);
+          noiseSource.start();
+
+          var crackleInterval = setInterval(function() {
+            if (!currentAmbientNodes) { clearInterval(crackleInterval); return; }
+            if (Math.random() < 0.45) {
+              var crackleOsc = ctx.createBufferSource();
+              crackleOsc.buffer = createNoiseBuffer(ctx, 'white');
+              var crackleFilter = ctx.createBiquadFilter();
+              crackleFilter.type = 'highpass';
+              crackleFilter.frequency.value = 2200;
+              var crackleGain = ctx.createGain();
+              crackleGain.gain.value = Math.random() * 0.18 + 0.05;
+              crackleOsc.connect(crackleFilter);
+              crackleFilter.connect(crackleGain);
+              crackleGain.connect(masterGain);
+              crackleOsc.start();
+              crackleOsc.stop(ctx.currentTime + 0.04);
+            }
+          }, 70);
+
+          currentAmbientNodes = {
+            stop: function() {
+              try { noiseSource.stop(); clearInterval(crackleInterval); } catch(e){}
+            },
+            gainNode: masterGain,
+            disconnect: function() { noiseSource.disconnect(); filter.disconnect(); masterGain.disconnect(); }
+          };
+        } else {
+          var noiseBuffer = createNoiseBuffer(ctx, 'white');
+          var noiseSource = ctx.createBufferSource();
+          noiseSource.buffer = noiseBuffer;
+          noiseSource.loop = true;
+
+          var filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 1600;
+
+          noiseSource.connect(filter);
+          filter.connect(masterGain);
+          noiseSource.start();
+
+          currentAmbientNodes = {
+            stop: function() {
+              try { noiseSource.stop(); } catch(e){}
+            },
+            gainNode: masterGain,
+            disconnect: function() { noiseSource.disconnect(); filter.disconnect(); masterGain.disconnect(); }
+          };
+        }
+      }
+
+      function playChime() {
+        var ctx = getAudioContext();
+        if (ctx) {
+          playSingingBowl(ctx, ctx.destination, 528);
+        }
+      }
+
+      return {
+        playAmbient: playAmbient,
+        stopAmbient: stopAmbient,
+        playChime: playChime
+      };
+    })();
+
+    window.playNexiiAmbient = function(soundType) {
+      if (window.NexiiAudioEngine) {
+        window.NexiiAudioEngine.playAmbient(soundType);
+      }
+    };
+
+    window.stopNexiiAmbient = function() {
+      if (window.NexiiAudioEngine) {
+        window.NexiiAudioEngine.stopAmbient();
+      }
+    };
+
+    window.playNexiiChime = function() {
+      if (window.NexiiAudioEngine) {
+        window.NexiiAudioEngine.playChime();
+      }
+    };
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
