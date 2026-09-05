@@ -1,0 +1,30 @@
+*.mode1v3
+*.mode2v3
+*.normal
+*.perspectivev3
+*.pbxuser
+*.xcworkspace
+!default.xcworkspace
+*.xcuserdata
+~*
+*~
+# Xcode Server hosted bot build data
+xcuserdata/
+
+# Code signing / Provisioning profiles
+*.moved-aside
+*.app
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Flutter-related
+.flutter-plugins
+.flutter-plugins-dependencies
+Flutter/Generated.xcconfig
+Flutter/flutter_export_environment.sh
+Flutter/ephemeral/

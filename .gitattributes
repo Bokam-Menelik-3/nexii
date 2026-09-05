@@ -1,0 +1,11 @@
+# Exclude the React web preview and synchronization scripts from GitHub language statistics
+# This ensures Dart/Flutter is recognized as the primary language of the repository.
+
+src/** linguist-vendored
+server.ts linguist-vendored
+sync_flutter_files.cjs linguist-vendored
+package.json linguist-vendored
+package-lock.json linguist-vendored
+tsconfig.json linguist-vendored
+vite.config.ts linguist-vendored
+index.html linguist-vendored
