@@ -21,7 +21,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Initialize Gemini Client
 let aiClient: GoogleGenAI | null = null;

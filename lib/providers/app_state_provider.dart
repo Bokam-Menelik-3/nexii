@@ -35,21 +35,16 @@ class AppStateProvider with ChangeNotifier {
   }
 
   String get _apiBaseUrl {
-    if (_customServerUrl != _defaultProductionServerUrl) {
-      return _customServerUrl;
-    }
     if (kIsWeb) {
       final baseUri = Uri.base;
-      if (baseUri.scheme == 'http' || baseUri.scheme == 'https') {
-        // In local web development, the backend Express server runs on port 3000
-        if (baseUri.host == 'localhost' ||
-            baseUri.host == '127.0.0.1' ||
-            baseUri.host == '0.0.0.0') {
-          return '${baseUri.scheme}://${baseUri.host}:3000';
-        }
-        return '${baseUri.scheme}://${baseUri.host}${baseUri.hasPort ? ':${baseUri.port}' : ''}';
+
+      if (baseUri.host == 'localhost' ||
+          baseUri.host == '127.0.0.1' ||
+          baseUri.host == '0.0.0.0') {
+        return '${baseUri.scheme}://${baseUri.host}:3000';
       }
     }
+
     return _customServerUrl;
   }
 
