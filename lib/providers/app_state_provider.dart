@@ -21,7 +21,7 @@ class AppStateProvider with ChangeNotifier {
   }
 
   static const String _defaultProductionServerUrl =
-      'https://ais-pre-3d27sf5ik2n6ln4xabwir3-272598978153.europe-west2.run.app';
+      'https://nexii-backend.onrender.com';
 
   String _customServerUrl = _defaultProductionServerUrl;
 
