@@ -3268,21 +3268,18 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- 🎯 CARD 1: MA MISSION ---
   Widget _buildMaMissionCard(BuildContext context, AppStateProvider state) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final topGoal = state.livingGoals.isNotEmpty
-        ? state.livingGoals.first
-        : {
-            'title': 'Réussir le devoir de Maths',
-            'progress': 0.72,
-            'nextStep': 'Réviser les fonctions pendant 25 min',
-          };
 
-    final String title = topGoal['title'] ?? 'Réussir le devoir de Maths';
+    if (state.livingGoals.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final topGoal = state.livingGoals.first;
+
+    final String title = topGoal['title']?.toString() ?? '';
     final double progress = (topGoal['progress'] is num)
-        ? (topGoal['progress'] as num).toDouble()
-        : 0.72;
-    final String nextStep =
-        topGoal['nextStep'] ?? 'Réviser les fonctions pendant 25 min';
-
+        ? (topGoal['progress'] as num).toDouble().clamp(0.0, 1.0)
+        : 0.0;
+    final String nextStep = topGoal['nextStep']?.toString() ?? '';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),

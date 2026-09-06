@@ -1932,6 +1932,9 @@ class AppStateProvider with ChangeNotifier {
     if (_isInitialized || _isDisposed) return;
     _isInitialized = true;
     _isSyncing = false;
+
+    await _firebaseService.waitForSessionRestore();
+
     if (!_firebaseService.isLoggedIn) {
       await _firebaseService.signInAnonymously();
     }
@@ -2106,7 +2109,7 @@ class AppStateProvider with ChangeNotifier {
       _isOnboardingComplete = true;
       _lastFirestoreSync = DateTime.now();
       await loadCommunityPosts();
-    } else {
+    } else if (cloudData != null) {
       _resetUserState();
       await loadCommunityPosts();
     }

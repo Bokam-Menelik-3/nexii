@@ -5,20 +5,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 class FirebaseService {
   static const String projectId = "gen-lang-client-0771099958";
   static const String apiKey = "AIzaSyA6MWlv5N1FspAMQdrbyYVCLI6GE1JZ13g";
-  static const String databaseId = "ai-studio-nexii-afbc11c1-d55d-412e-ad80-12b6a417fe2b";
+  static const String databaseId =
+      "ai-studio-nexii-afbc11c1-d55d-412e-ad80-12b6a417fe2b";
 
   String? _idToken;
   String? _uid;
   String? _email;
   bool _isLoggedIn = false;
+  late final Future<void> _sessionRestoreFuture;
 
   String? get uid => _uid;
   String? get email => _email;
   bool get isLoggedIn => _isLoggedIn;
 
   FirebaseService() {
-    _restoreSession();
+    _sessionRestoreFuture = _restoreSession();
   }
+
+  Future<void> waitForSessionRestore() => _sessionRestoreFuture;
 
   Future<void> _restoreSession() async {
     try {
@@ -42,7 +46,8 @@ class FirebaseService {
         await prefs.setString('nexii_is_logged_in', 'true');
         if (_uid != null) await prefs.setString('nexii_user_uid', _uid!);
         if (_email != null) await prefs.setString('nexii_user_email', _email!);
-        if (_idToken != null) await prefs.setString('nexii_user_idToken', _idToken!);
+        if (_idToken != null)
+          await prefs.setString('nexii_user_idToken', _idToken!);
       } else {
         await _clearSession();
       }
@@ -65,7 +70,8 @@ class FirebaseService {
 
   // Firebase Auth: Sign in with Email & Password
   Future<bool> signIn(String email, String password) async {
-    final url = Uri.parse("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$apiKey");
+    final url = Uri.parse(
+        "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$apiKey");
     try {
       final response = await http.post(
         url,
@@ -97,7 +103,8 @@ class FirebaseService {
 
   // Firebase Auth: Sign up with Email & Password
   Future<bool> signUp(String email, String password) async {
-    final url = Uri.parse("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$apiKey");
+    final url = Uri.parse(
+        "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$apiKey");
     try {
       final response = await http.post(
         url,
@@ -129,7 +136,8 @@ class FirebaseService {
 
   // Firebase Auth: Anonymous login
   Future<bool> signInAnonymously() async {
-    final url = Uri.parse("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$apiKey");
+    final url = Uri.parse(
+        "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$apiKey");
     try {
       final response = await http.post(
         url,
@@ -170,8 +178,7 @@ class FirebaseService {
     if (!_isLoggedIn || _uid == null) return null;
 
     final url = Uri.parse(
-      "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/users/$_uid"
-    );
+        "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/users/$_uid");
 
     try {
       final response = await http.get(
@@ -211,8 +218,7 @@ class FirebaseService {
     if (!_isLoggedIn || _uid == null) return false;
 
     final url = Uri.parse(
-      "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/users/$_uid"
-    );
+        "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/users/$_uid");
 
     try {
       final fields = <String, dynamic>{};
@@ -244,10 +250,10 @@ class FirebaseService {
   }
 
   // Firestore REST: Fetch all documents from a collection
-  Future<List<Map<String, dynamic>>?> fetchCollection(String collectionName) async {
+  Future<List<Map<String, dynamic>>?> fetchCollection(
+      String collectionName) async {
     final url = Uri.parse(
-      "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionName"
-    );
+        "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionName");
 
     try {
       final response = await http.get(
@@ -262,7 +268,7 @@ class FirebaseService {
         final data = jsonDecode(response.body);
         final documents = data['documents'] as List?;
         if (documents == null) return [];
-        
+
         final List<Map<String, dynamic>> list = [];
         for (var doc in documents) {
           final fields = doc['fields'] as Map<String, dynamic>?;
@@ -271,14 +277,16 @@ class FirebaseService {
           if (fields != null) {
             final converted = <String, dynamic>{'id': docId};
             fields.forEach((key, value) {
-              converted[key] = _fromFirestoreValue(value as Map<String, dynamic>);
+              converted[key] =
+                  _fromFirestoreValue(value as Map<String, dynamic>);
             });
             list.add(converted);
           }
         }
         return list;
       } else {
-        print("Failed to fetch collection $collectionName: ${response.statusCode} - ${response.body}");
+        print(
+            "Failed to fetch collection $collectionName: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
@@ -288,10 +296,10 @@ class FirebaseService {
   }
 
   // Firestore REST: Create document in a collection
-  Future<Map<String, dynamic>?> createDocument(String collectionName, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>?> createDocument(
+      String collectionName, Map<String, dynamic> data) async {
     final url = Uri.parse(
-      "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionName"
-    );
+        "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionName");
 
     try {
       final fields = <String, dynamic>{};
@@ -334,11 +342,12 @@ class FirebaseService {
   }
 
   // Firestore REST: Update document field values
-  Future<bool> updateDocument(String collectionName, String documentId, Map<String, dynamic> data) async {
-    final fieldsQuery = data.keys.map((k) => "updateMask.fieldPaths=$k").join("&");
+  Future<bool> updateDocument(String collectionName, String documentId,
+      Map<String, dynamic> data) async {
+    final fieldsQuery =
+        data.keys.map((k) => "updateMask.fieldPaths=$k").join("&");
     final url = Uri.parse(
-      "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionName/$documentId?$fieldsQuery"
-    );
+        "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionName/$documentId?$fieldsQuery");
 
     try {
       final fields = <String, dynamic>{};
@@ -372,8 +381,7 @@ class FirebaseService {
   // Firestore REST: Delete document in a collection
   Future<bool> deleteDocument(String collectionName, String documentId) async {
     final url = Uri.parse(
-      "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionName/$documentId"
-    );
+        "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionName/$documentId");
 
     try {
       final response = await http.delete(
@@ -397,19 +405,22 @@ class FirebaseService {
   }
 
   // Firestore REST: Fetch user subcollection
-  Future<List<Map<String, dynamic>>?> fetchUserSubcollection(String subcollectionName) async {
+  Future<List<Map<String, dynamic>>?> fetchUserSubcollection(
+      String subcollectionName) async {
     if (!_isLoggedIn || _uid == null) return null;
     return fetchCollection("users/$_uid/$subcollectionName");
   }
 
   // Firestore REST: Save user subcollection document
-  Future<bool> saveUserSubcollectionDocument(String subcollectionName, String docId, Map<String, dynamic> data) async {
+  Future<bool> saveUserSubcollectionDocument(
+      String subcollectionName, String docId, Map<String, dynamic> data) async {
     if (!_isLoggedIn || _uid == null) return false;
     return updateDocument("users/$_uid/$subcollectionName", docId, data);
   }
 
   // Firestore REST: Delete user subcollection document
-  Future<bool> deleteUserSubcollectionDocument(String subcollectionName, String docId) async {
+  Future<bool> deleteUserSubcollectionDocument(
+      String subcollectionName, String docId) async {
     if (!_isLoggedIn || _uid == null) return false;
     return deleteDocument("users/$_uid/$subcollectionName", docId);
   }
@@ -443,19 +454,27 @@ class FirebaseService {
   // Firestore Map Converter: Firestore REST nested values to Dart Map
   static dynamic _fromFirestoreValue(Map<String, dynamic> firestoreVal) {
     if (firestoreVal.containsKey('nullValue')) return null;
-    if (firestoreVal.containsKey('stringValue')) return firestoreVal['stringValue'];
-    if (firestoreVal.containsKey('booleanValue')) return firestoreVal['booleanValue'];
-    if (firestoreVal.containsKey('doubleValue')) return firestoreVal['doubleValue'];
+    if (firestoreVal.containsKey('stringValue'))
+      return firestoreVal['stringValue'];
+    if (firestoreVal.containsKey('booleanValue'))
+      return firestoreVal['booleanValue'];
+    if (firestoreVal.containsKey('doubleValue'))
+      return firestoreVal['doubleValue'];
     if (firestoreVal.containsKey('integerValue')) {
-      return int.tryParse(firestoreVal['integerValue']) ?? double.tryParse(firestoreVal['integerValue']) ?? 0;
+      return int.tryParse(firestoreVal['integerValue']) ??
+          double.tryParse(firestoreVal['integerValue']) ??
+          0;
     }
     if (firestoreVal.containsKey('arrayValue')) {
       final list = firestoreVal['arrayValue']['values'] as List?;
       if (list == null) return [];
-      return list.map((item) => _fromFirestoreValue(item as Map<String, dynamic>)).toList();
+      return list
+          .map((item) => _fromFirestoreValue(item as Map<String, dynamic>))
+          .toList();
     }
     if (firestoreVal.containsKey('mapValue')) {
-      final fields = firestoreVal['mapValue']['fields'] as Map<String, dynamic>?;
+      final fields =
+          firestoreVal['mapValue']['fields'] as Map<String, dynamic>?;
       if (fields == null) return {};
       final result = <String, dynamic>{};
       fields.forEach((key, value) {
