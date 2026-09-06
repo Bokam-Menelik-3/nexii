@@ -4,6 +4,7 @@ import 'package:nexii/providers/app_state_provider.dart';
 import 'dart:io';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = null;
 
   test('Coach IA connects to Express backend on port 3000 and receives gemini response', () async {
@@ -24,7 +25,7 @@ void main() {
     expect(lastMessage['provider'], 'gemini');
     expect((lastMessage['text'] as String).isNotEmpty, true);
     expect(lastMessage['actions'], isNotNull);
-  });
+  }, timeout: const Timeout(Duration(seconds: 60)));
 
   test('Coach IA falls back to local heuristic when selected provider is local', () async {
     final provider = AppStateProvider();

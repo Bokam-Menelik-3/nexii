@@ -23,10 +23,10 @@ class _FocusScreenState extends State<FocusScreen>
   final AudioPlayer _chimePlayer = AudioPlayer();
 
   final Map<String, String> _soundUrls = {
-    'Pluie': 'assets/audio/focus/rain.mp3',
-    'Pluie en Forêt': 'assets/audio/focus/rain.mp3',
-    'Océan': 'assets/audio/focus/ocean.mp3',
-    'Forêt Zen': 'assets/audio/focus/forest.mp3',
+    'Pluie': 'audio/focus/rain.mp3',
+    'Pluie en Forêt': 'audio/focus/rain.mp3',
+    'Océan': 'audio/focus/ocean.mp3',
+    'Forêt Zen': 'audio/focus/forest.mp3',
   };
   final String _chimeUrl =
       'https://assets.mixkit.co/active_storage/sfx/911/911-84.wav';
@@ -78,9 +78,12 @@ class _FocusScreenState extends State<FocusScreen>
     super.dispose();
   }
 
-  void _playAmbient(String sound) async {
-    final assetPath = _soundUrls[sound];
+  Future<void> _playAmbient(String sound) async {
+    String? assetPath = _soundUrls[sound] ?? _soundUrls['Pluie'];
     if (assetPath != null) {
+      if (assetPath.startsWith('assets/')) {
+        assetPath = assetPath.substring('assets/'.length);
+      }
       try {
         await _ambientPlayer.stop();
         await _ambientPlayer.play(AssetSource(assetPath));
@@ -231,6 +234,9 @@ class _FocusScreenState extends State<FocusScreen>
                         : null,
                     onTap: () {
                       state.setSound(sound);
+                      if (_isRunning) {
+                        _playAmbient(sound);
+                      }
                       Navigator.pop(context);
                     },
                   );

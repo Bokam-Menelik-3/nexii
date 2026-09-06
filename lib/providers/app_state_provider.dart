@@ -20,8 +20,10 @@ class AppStateProvider with ChangeNotifier {
     super.dispose();
   }
 
-  String _customServerUrl =
+  static const String _defaultProductionServerUrl =
       'https://ais-pre-3d27sf5ik2n6ln4xabwir3-272598978153.europe-west2.run.app';
+
+  String _customServerUrl = _defaultProductionServerUrl;
 
   String get customServerUrl => _customServerUrl;
 
@@ -33,11 +35,16 @@ class AppStateProvider with ChangeNotifier {
   }
 
   String get _apiBaseUrl {
+    if (_customServerUrl != _defaultProductionServerUrl) {
+      return _customServerUrl;
+    }
     if (kIsWeb) {
       final baseUri = Uri.base;
       if (baseUri.scheme == 'http' || baseUri.scheme == 'https') {
         // In local web development, the backend Express server runs on port 3000
-        if (baseUri.host == 'localhost' || baseUri.host == '127.0.0.1') {
+        if (baseUri.host == 'localhost' ||
+            baseUri.host == '127.0.0.1' ||
+            baseUri.host == '0.0.0.0') {
           return '${baseUri.scheme}://${baseUri.host}:3000';
         }
         return '${baseUri.scheme}://${baseUri.host}${baseUri.hasPort ? ':${baseUri.port}' : ''}';
@@ -155,7 +162,7 @@ class AppStateProvider with ChangeNotifier {
 
   // Dynamic Focus States
   int _focusMinutesTotal = 0;
-  String _selectedSound = 'Pluie en Forêt'; // Rain
+  String _selectedSound = 'Pluie'; // Rain
 
   int get focusMinutesTotal => _focusMinutesTotal;
   String get selectedSound => _selectedSound;
@@ -611,48 +618,7 @@ class AppStateProvider with ChangeNotifier {
   }
 
   // --- 🎯 LIVING GOAL (Objectif Vivant Intelligent) ---
-  List<Map<String, dynamic>> _livingGoals = [
-    {
-      "id": "lg_flutter",
-      "title": "🎓 Examen Flutter & Clean Architecture",
-      "deadline": "12 jours (5 Août 2026)",
-      "importance": "Haute (Priorité 1)",
-      "completion": 68,
-      "successProbability": 92,
-      "status": "Vivant & Optimisé",
-      "aiHealth": "94%",
-      "autoAdjustCount": 4,
-      "dependentTasksCount": 5,
-      "dependentTasks": [
-        "📚 Chapitre 4 : State Management & Riverpod",
-        "⏱️ 3x Sessions Focus 45m de code",
-        "🛠️ Projet Pratique Clean Architecture"
-      ],
-      "liveStateMessage":
-          "L'IA a ajusté 2 dépendances hier pour maintenir ta probabilité de succès à 92%.",
-      "pulseRisk": "Faible",
-    },
-    {
-      "id": "lg_startup",
-      "title": "🚀 Lancement Bêta Nexii App",
-      "deadline": "24 jours (17 Août 2026)",
-      "importance": "Stratégique",
-      "completion": 45,
-      "successProbability": 84,
-      "status": "Risque Modéré Détecté",
-      "aiHealth": "88%",
-      "autoAdjustCount": 2,
-      "dependentTasksCount": 8,
-      "dependentTasks": [
-        "🔥 Intégration Firebase Firestore Auth",
-        "🎨 Finition UI / UX Adaptative",
-        "🧪 Tests End-to-End"
-      ],
-      "liveStateMessage":
-          "Un Pulse a été généré pour lisser la charge de travail du jeudi.",
-      "pulseRisk": "Modéré",
-    },
-  ];
+  List<Map<String, dynamic>> _livingGoals = [];
 
   List<Map<String, dynamic>> get livingGoals => _livingGoals;
 
@@ -731,7 +697,7 @@ class AppStateProvider with ChangeNotifier {
   }
 
   // --- 🟦 NEXII PULSE (Intervention Proactive Importante) ---
-  bool _isPulseActive = true;
+  bool _isPulseActive = false;
   bool get isPulseActive => _isPulseActive;
 
   bool _isPulseApplied = false;
@@ -741,7 +707,7 @@ class AppStateProvider with ChangeNotifier {
         "title": "Baisse de concentration détectée",
         "detectedPattern":
             "3 jours consécutifs avec -22% de temps de focus ininterrompu.",
-        "impact": "Risque de retard de 2 jours sur l'Examen Flutter.",
+        "impact": "Risque de retard sur les objectifs prioritaires.",
         "solution": "Planning alternatif préparé par l'IA Nexii Intelligence.",
         "chargeReduction": "18%",
         "sameDeadline": true,
@@ -1613,7 +1579,7 @@ class AppStateProvider with ChangeNotifier {
               'provider': _selectedAiProvider,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 35));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -1951,6 +1917,9 @@ class AppStateProvider with ChangeNotifier {
     _lastManualCheckInDate = '';
     _tasks.clear();
     _goals.clear();
+    _livingGoals.clear();
+    _isPulseActive = false;
+    _isPulseApplied = false;
     _missions.clear();
     _notifications.clear();
     _agendaEvents.clear();
@@ -2093,6 +2062,11 @@ class AppStateProvider with ChangeNotifier {
         _goals.addAll((cloudData['goals'] as List)
             .map((g) => Map<String, dynamic>.from(g)));
       }
+      if (cloudData.containsKey('livingGoals')) {
+        _livingGoals.clear();
+        _livingGoals.addAll((cloudData['livingGoals'] as List)
+            .map((g) => Map<String, dynamic>.from(g)));
+      }
       if (cloudData.containsKey('communityPosts')) {
         _communityPosts.clear();
         _communityPosts.addAll((cloudData['communityPosts'] as List)
@@ -2200,6 +2174,7 @@ class AppStateProvider with ChangeNotifier {
       'missions': _missions,
       'agendaEvents': _agendaEvents,
       'goals': _goals,
+      'livingGoals': _livingGoals,
       'communityPosts': _communityPosts,
       'notifications': _notifications,
       'focusMinutesTotal': _focusMinutesTotal,
@@ -2705,7 +2680,7 @@ class AppStateProvider with ChangeNotifier {
               },
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 35));
 
       _isCoachTyping = false;
       if (response.statusCode == 200) {

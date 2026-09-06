@@ -26,6 +26,7 @@ void main() {
     expect(provider.tasks, isEmpty);
     expect(provider.missions, isEmpty);
     expect(provider.goals, isEmpty);
+    expect(provider.livingGoals, isEmpty);
     expect(provider.agendaEvents, isEmpty);
   });
 
@@ -47,7 +48,28 @@ void main() {
     expect(provider.focusMinutesTotal, 0);
     expect(provider.tasks, isEmpty);
     expect(provider.goals, isEmpty);
+    expect(provider.livingGoals, isEmpty);
     expect(provider.agendaEvents, isEmpty);
+  });
+
+  test('toggleMissionCompleted toggles completion status and updates progress', () {
+    final provider = AppStateProvider();
+    addTearDown(provider.dispose);
+
+    provider.addMission('Mission Test', 'Description', 50);
+    expect(provider.missions.length, 1);
+    final missionId = provider.missions.first['id'].toString();
+    expect(provider.missions.first['isCompleted'], isNot(true));
+
+    // Complete mission
+    provider.toggleMissionCompleted(missionId);
+    expect(provider.missions.first['isCompleted'], true);
+    expect(provider.missions.first['progress'], 1.0);
+
+    // Uncomplete mission
+    provider.toggleMissionCompleted(missionId);
+    expect(provider.missions.first['isCompleted'], false);
+    expect(provider.missions.first['progress'], 0.0);
   });
 
   testWidgets('App launches successfully', (WidgetTester tester) async {
