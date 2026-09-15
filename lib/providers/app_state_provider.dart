@@ -2861,6 +2861,16 @@ class AppStateProvider with ChangeNotifier {
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'fr': {
+      'n1_header_title': 'Nexii Intelligence',
+      'n1_badge_label': 'Recommandation N1',
+      'n1_default_recommendation': 'Avancez sereinement sur vos priorités actuelles.',
+      'n1_action_recovery_mode': 'Activer le Mode Récupération 🌿',
+      'n1_action_crisis_mode': 'Activer l\'affichage épuré 🛡️',
+      'n1_action_pulse': 'Ajuster le planning 🟦',
+      'n1_action_ai_strategy': 'Optimiser les priorités 🎯',
+      'n1_action_start_focus': 'Démarrer 15m Focus ⏱️',
+      'n1_action_decompose_task': 'Découper en micro-actions ⚡',
+      'n1_action_start_task': 'Voir la tâche prioritaire 🎯',
       'birthday_title': "🎉 Joyeux Anniversaire !",
       'birthday_desc':
           "Toute l'équipe Nexii vous souhaite une magnifique journée d'équilibre et de bonheur ! En ce jour spécial, doublez vos gains d'XP et faites un vœu bien-être. 🌟",
@@ -2940,7 +2950,7 @@ class AppStateProvider with ChangeNotifier {
       'device_options': 'Options de l\'appareil',
       'onboarding_title': 'Complétez votre profil',
       'onboarding_desc':
-          'Veuillez entrer vos informations pour personnaliser votre expérience sur Nexii.',
+          'Veuillez entrer vos informations pour personaliser votre expérience sur Nexii.',
       'onboarding_name_label': 'Nom complet',
       'onboarding_birthdate_label': 'Date de naissance',
       'onboarding_submit': 'Valider et démarrer',
@@ -2950,6 +2960,16 @@ class AppStateProvider with ChangeNotifier {
       'cancel_btn': 'Annuler',
     },
     'en': {
+      'n1_header_title': 'Nexii Intelligence',
+      'n1_badge_label': 'N1 Recommendation',
+      'n1_default_recommendation': 'Advance smoothly on your current priorities.',
+      'n1_action_recovery_mode': 'Enable Recovery Mode 🌿',
+      'n1_action_crisis_mode': 'Enable Focus View 🛡️',
+      'n1_action_pulse': 'Adjust Schedule 🟦',
+      'n1_action_ai_strategy': 'Optimize Priorities 🎯',
+      'n1_action_start_focus': 'Start 15m Focus ⏱️',
+      'n1_action_decompose_task': 'Break down into micro-actions ⚡',
+      'n1_action_start_task': 'View Priority Task 🎯',
       'birthday_title': "🎉 Happy Birthday!",
       'birthday_desc':
           "The Nexii team wishes you a wonderful day of balance and happiness! On this special day, double your XP earnings and make a well-being wish. 🌟",
@@ -3038,6 +3058,16 @@ class AppStateProvider with ChangeNotifier {
       'cancel_btn': 'Cancel',
     },
     'es': {
+      'n1_header_title': 'Nexii Intelligence',
+      'n1_badge_label': 'Recomendación N1',
+      'n1_default_recommendation': 'Avanza tranquilamente en tus prioridades actuales.',
+      'n1_action_recovery_mode': 'Activar Modo Recuperación 🌿',
+      'n1_action_crisis_mode': 'Activar vista sin distracciones 🛡️',
+      'n1_action_pulse': 'Ajustar agenda 🟦',
+      'n1_action_ai_strategy': 'Optimizar prioridades 🎯',
+      'n1_action_start_focus': 'Iniciar 15m Enfoque ⏱️',
+      'n1_action_decompose_task': 'Dividir en microacciones ⚡',
+      'n1_action_start_task': 'Ver tarea prioritaria 🎯',
       'birthday_title': "🎉 ¡Feliz Cumpleaños!",
       'birthday_desc':
           "¡El equipo de Nexii te desea un maravilloso día de equilibrio y felicidad! En este día especial, ¡duplica tus ganancias de XP y pide un deseo de bienestar! 🌟",
@@ -3047,7 +3077,7 @@ class AppStateProvider with ChangeNotifier {
       'welcome_back': 'Hola',
       'calm_message': 'Inhala profundamente. Todo está bajo control.',
       'tab_home': 'Inicio',
-      'tab_missions': 'Misiones',
+      'tab_missions': 'Missions',
       'tab_tasks': 'Tareas',
       'tab_focus': 'Enfoque',
       'tab_coach': 'Coach',

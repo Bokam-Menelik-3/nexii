@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state_provider.dart';
+import '../widgets/n1_recommendation_card.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -447,6 +448,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ?.copyWith(color: Colors.grey),
               ),
               const SizedBox(height: 16),
+
+              // --- 🌟 N1 RECOMMENDATION CARD ---
+              const NexiiN1RecommendationCard(),
 
               // --- 🎭 0. CHARTE D'HUMEUR ("VOTRE HUMEUR DU JOUR") ---
               _buildMoodSelectorCard(context, state),
