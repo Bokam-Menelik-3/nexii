@@ -74,7 +74,7 @@ class AppStateProvider with ChangeNotifier {
         level: _level,
         streak: _streak,
         disciplineScore: disciplineScore,
-        auraScore: _mentalBattery + (_recoveryIndex ~/ 2),
+        auraScore: auraScore,
         currentMood: _dailyMood.toString(),
         dailyMood: _dailyMood,
         dailyEnergy: _dailyEnergy,
@@ -2712,44 +2712,9 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Aura percentage calculation
+  // Aura percentage calculation - delegates to canonical 6-pillar auraScore
   double get auraPercentage {
-    // Pillar 1: Objectifs (25 pts)
-    int goalsPillarScore = 20 + (_level > 2 ? 5 : 2);
-
-    // Pillar 2: Gestion des tâches (25 pts)
-    double tasksCompletedRatio = _tasks.isNotEmpty
-        ? (_tasks.where((tk) => tk['isCompleted'] == true).length /
-            _tasks.length)
-        : 0.5;
-    int tasksPillarScore = (tasksCompletedRatio * 25).round();
-
-    // Pillar 3: Focus (20 pts)
-    // Focus minutes can be high, normalize around 120 mins
-    int focusPillarScore =
-        ((_focusMinutesTotal / 120.0) * 20.0).round().clamp(0, 20);
-
-    // Pillar 4: Bien-être (25 pts)
-    int wellnessPillarScore = _hasCheckedInToday
-        ? (((_dailyMood +
-                        _dailyEnergy +
-                        _dailyMotivation +
-                        (6 - _dailyStress)) /
-                    20.0) *
-                25.0)
-            .round()
-        : 18;
-
-    // Pillar 5: Bonus (5 pts)
-    int bonusPillarScore = (_streak >= 5 ? 5 : _streak).clamp(0, 5);
-
-    double calculated = (goalsPillarScore +
-            tasksPillarScore +
-            focusPillarScore +
-            wellnessPillarScore +
-            bonusPillarScore)
-        .toDouble();
-    return calculated.clamp(10.0, 100.0);
+    return auraScore.toDouble();
   }
 
   String get auraLabel {

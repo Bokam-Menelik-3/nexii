@@ -3222,28 +3222,12 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
             ],
 
-            // 🌦️ Mode Vie Réelle (Context Awareness)
-            _buildContextAwarenessSelector(context, state),
-            const SizedBox(height: 12),
-
-            // 🎚️ Niveau d'Autonomie Nexii
-            _buildAutonomyLevelSelector(context, state),
-            const SizedBox(height: 12),
-
             // 🌱 Nexii Identity Summary
             _buildIdentitySummaryCard(context, state),
             const SizedBox(height: 12),
 
             // 🧬 Nexii Learning Loop ("Ce que Nexii a appris sur toi")
             _buildLearningLoopCard(context, state),
-            const SizedBox(height: 12),
-
-            // 🏆 Nexii Moments (Timeline)
-            _buildNexiiMomentsCard(context, state),
-            const SizedBox(height: 12),
-
-            // 🧪 Nexii Labs Toggle
-            _buildNexiiLabsToggle(context, state),
             const SizedBox(height: 12),
 
             // AI Action Quick Trigger
