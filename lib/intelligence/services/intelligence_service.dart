@@ -107,63 +107,7 @@ class IntelligenceService {
   }
 
   N1Summary evaluateN1(ContextSnapshot snapshot) {
-    // Run relevant nodes safely in a read-only manner
-    final nodeRiskFlags = <String>[];
-    final nodeRecommendations = <String>[];
-
-    if (observeNode.isRelevant(snapshot)) {
-      final res = observeNode.execute(snapshot);
-      nodeRiskFlags.addAll(res.riskFlags);
-      nodeRecommendations.addAll(res.recommendations);
-    }
-
-    if (understandNode.isRelevant(snapshot)) {
-      final res = understandNode.execute(snapshot);
-      nodeRiskFlags.addAll(res.riskFlags);
-      nodeRecommendations.addAll(res.recommendations);
-    }
-
-    if (pulseNode.isRelevant(snapshot)) {
-      final res = pulseNode.execute(snapshot);
-      nodeRiskFlags.addAll(res.riskFlags);
-      nodeRecommendations.addAll(res.recommendations);
-    }
-
-    if (auraNode.isRelevant(snapshot)) {
-      final res = auraNode.execute(snapshot);
-      nodeRiskFlags.addAll(res.riskFlags);
-      nodeRecommendations.addAll(res.recommendations);
-    }
-
-    if (livingGoalsNode.isRelevant(snapshot)) {
-      final res = livingGoalsNode.execute(snapshot);
-      nodeRiskFlags.addAll(res.riskFlags);
-      nodeRecommendations.addAll(res.recommendations);
-    }
-
-    if (anticipateNode.isRelevant(snapshot)) {
-      final res = anticipateNode.execute(snapshot);
-      nodeRiskFlags.addAll(res.riskFlags);
-      nodeRecommendations.addAll(res.recommendations);
-    }
-
-    if (recommendNode.isRelevant(snapshot)) {
-      final res = recommendNode.execute(snapshot);
-      nodeRiskFlags.addAll(res.riskFlags);
-      nodeRecommendations.addAll(res.recommendations);
-    }
-
-    if (measureNode.isRelevant(snapshot)) {
-      final res = measureNode.execute(snapshot);
-      nodeRiskFlags.addAll(res.riskFlags);
-      nodeRecommendations.addAll(res.recommendations);
-    }
-
-    return n1DecisionEngine.evaluate(
-      snapshot,
-      nodeRiskFlags: nodeRiskFlags,
-      nodeRecommendations: nodeRecommendations,
-    );
+    return n1DecisionEngine.evaluate(snapshot);
   }
 
   IntelligenceResult runObserve(ContextSnapshot snapshot) {
