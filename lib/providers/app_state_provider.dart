@@ -4,10 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../core/services/firebase_service.dart';
+import '../domains/agenda/agenda_domain_state.dart';
+import '../domains/focus/focus_domain_state.dart';
+import '../domains/tasks/task_domain_state.dart';
+import '../domains/tasks/task_item.dart';
 import '../intelligence/models/intelligence_models.dart';
 import '../intelligence/services/intelligence_service.dart';
 
 class AppStateProvider with ChangeNotifier {
+  // Domain States
+  final AgendaDomainState _agendaDomainState = AgendaDomainState();
+  AgendaDomainState get agendaDomainState => _agendaDomainState;
+
+  final TaskDomainState _taskDomainState = TaskDomainState();
+  TaskDomainState get taskDomainState => _taskDomainState;
+
+  final FocusDomainState _focusDomainState = FocusDomainState();
+  FocusDomainState get focusDomainState => _focusDomainState;
   final FirebaseService _firebaseService = FirebaseService();
   bool _isSyncing = false;
   bool _isDisposed = false;
@@ -66,15 +79,15 @@ class AppStateProvider with ChangeNotifier {
         isAnonymous: userUid == null || userUid!.isEmpty,
         locale: _currentLocale.languageCode,
         onboardingComplete: _isOnboardingComplete,
-        tasks: List<Map<String, dynamic>>.from(_tasks),
-        agendaEvents: List<Map<String, dynamic>>.from(_agendaEvents),
+        tasks: _taskDomainState.tasksAsMaps,
+        agendaEvents: _agendaDomainState.eventsAsMaps,
         goals: List<Map<String, dynamic>>.from(_goals),
         missions: List<Map<String, dynamic>>.from(_missions),
         xp: _xp,
         level: _level,
         streak: _streak,
         disciplineScore: disciplineScore,
-        auraScore: _mentalBattery + (_recoveryIndex ~/ 2),
+        auraScore: auraScore,
         currentMood: _dailyMood.toString(),
         dailyMood: _dailyMood,
         dailyEnergy: _dailyEnergy,
@@ -155,21 +168,19 @@ class AppStateProvider with ChangeNotifier {
   int get streakDays => _streak;
   bool get isDayValidated => _isDayValidated;
 
-  // Dynamic Focus States
-  int _focusMinutesTotal = 0;
-  String _selectedSound = 'Pluie'; // Rain
-
-  int get focusMinutesTotal => _focusMinutesTotal;
-  String get selectedSound => _selectedSound;
+  // Dynamic Focus States - Delegated to FocusDomainState
+  int get focusMinutesTotal => _focusDomainState.totalFocusMinutes;
+  int get _focusMinutesTotal => _focusDomainState.totalFocusMinutes;
+  String get selectedSound => _focusDomainState.selectedSound;
 
   void setSound(String sound) {
-    _selectedSound = sound;
+    _focusDomainState.setSelectedSound(sound);
     _syncToFirebase();
     notifyListeners();
   }
 
   void addFocusMinutes(int mins) {
-    _focusMinutesTotal += mins;
+    _focusDomainState.recordSession(mins);
     _xp += mins * 2;
     if (_xp >= 100 * _level) {
       _xp -= 100 * _level;
@@ -179,10 +190,9 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Tasks State
-  final List<Map<String, dynamic>> _tasks = [];
-
-  List<Map<String, dynamic>> get tasks => _tasks;
+  // Tasks State - Delegated to TaskDomainState
+  List<Map<String, dynamic>> get tasks => _taskDomainState.tasksAsMaps;
+  List<Map<String, dynamic>> get _tasks => _taskDomainState.tasksAsMaps;
 
   // Notifications State
   final List<Map<String, dynamic>> _notifications = [];
@@ -1879,10 +1889,8 @@ class AppStateProvider with ChangeNotifier {
   bool _isCoachTyping = false;
   bool get isCoachTyping => _isCoachTyping;
 
-  // Agenda State
-  final List<Map<String, dynamic>> _agendaEvents = [];
-
-  List<Map<String, dynamic>> get agendaEvents => _agendaEvents;
+  // Agenda State - Delegated to AgendaDomainState for modular isolation
+  List<Map<String, dynamic>> get agendaEvents => _agendaDomainState.eventsAsMaps;
 
   Timer? _realtimeSyncTimer;
   DateTime? _lastFirestoreSync;
@@ -1900,7 +1908,7 @@ class AppStateProvider with ChangeNotifier {
     _level = 1;
     _streak = 0;
     _isDayValidated = false;
-    _focusMinutesTotal = 0;
+    _focusDomainState.clear();
     _totalBudget = 0.0;
     _isCrisisMode = false;
     _dailyMood = 3;
@@ -1910,14 +1918,15 @@ class AppStateProvider with ChangeNotifier {
     _dailySleep = 3;
     _hasCheckedInToday = false;
     _lastManualCheckInDate = '';
-    _tasks.clear();
+    _taskDomainState.clear();
+    _focusDomainState.clear();
     _goals.clear();
     _livingGoals.clear();
     _isPulseActive = false;
     _isPulseApplied = false;
     _missions.clear();
     _notifications.clear();
-    _agendaEvents.clear();
+    _agendaDomainState.clear();
     _transactions.clear();
     _communityPosts.clear();
     _messages.clear();
@@ -1969,9 +1978,8 @@ class AppStateProvider with ChangeNotifier {
           final cloudTasks = (cloudData['tasks'] as List)
               .map((t) => Map<String, dynamic>.from(t))
               .toList();
-          if (jsonEncode(cloudTasks) != jsonEncode(_tasks)) {
-            _tasks.clear();
-            _tasks.addAll(cloudTasks);
+          if (jsonEncode(cloudTasks) != jsonEncode(_taskDomainState.tasksAsMaps)) {
+            _taskDomainState.setTasks(cloudTasks);
             changed = true;
           }
         }
@@ -2031,13 +2039,13 @@ class AppStateProvider with ChangeNotifier {
       if (cloudData.containsKey('totalBudget'))
         _totalBudget = (cloudData['totalBudget'] as num).toDouble();
       if (cloudData.containsKey('focusMinutesTotal'))
-        _focusMinutesTotal = cloudData['focusMinutesTotal'];
+        _focusDomainState.setTotalMinutes(cloudData['focusMinutesTotal']);
 
       if (cloudData.containsKey('tasks') &&
           (cloudData['tasks'] as List).isNotEmpty) {
-        _tasks.clear();
-        _tasks.addAll((cloudData['tasks'] as List)
-            .map((t) => Map<String, dynamic>.from(t)));
+        _taskDomainState.setTasks((cloudData['tasks'] as List)
+            .map((t) => Map<String, dynamic>.from(t))
+            .toList());
       }
       if (cloudData.containsKey('transactions')) {
         _transactions.clear();
@@ -2045,9 +2053,10 @@ class AppStateProvider with ChangeNotifier {
             .map((t) => Map<String, dynamic>.from(t)));
       }
       if (cloudData.containsKey('agendaEvents')) {
-        _agendaEvents.clear();
-        _agendaEvents.addAll((cloudData['agendaEvents'] as List)
-            .map((e) => Map<String, dynamic>.from(e)));
+        _agendaDomainState.setEvents(
+            (cloudData['agendaEvents'] as List)
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList());
       }
       if (cloudData.containsKey('missions') &&
           (cloudData['missions'] as List).isNotEmpty) {
@@ -2170,7 +2179,7 @@ class AppStateProvider with ChangeNotifier {
       'transactions': _transactions,
       'totalBudget': _totalBudget,
       'missions': _missions,
-      'agendaEvents': _agendaEvents,
+      'agendaEvents': _agendaDomainState.eventsAsMaps,
       'goals': _goals,
       'livingGoals': _livingGoals,
       'communityPosts': _communityPosts,
@@ -2243,7 +2252,7 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Task Actions
+  // Task Actions - Forwarded to TaskDomainState
   void addTask(
     String title,
     String subtitle,
@@ -2256,22 +2265,20 @@ class AppStateProvider with ChangeNotifier {
     String linkedGoalId = '',
     List<Map<String, dynamic>>? subtasks,
   }) {
-    final newTaskId = DateTime.now().millisecondsSinceEpoch.toString();
-    final newTask = {
-      'id': newTaskId,
-      'title': title,
-      'subtitle': subtitle,
-      'category': category,
-      'isCompleted': false,
-      'priority': priority,
-      'urgency': urgency,
-      'difficulty': difficulty,
-      'estimatedTime': estimatedTime,
-      'energyNeeded': energyNeeded,
-      'linkedGoalId': linkedGoalId,
-      'subtasks': subtasks ?? [],
-    };
-    _tasks.add(newTask);
+    final newItem = TaskItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      subtitle: subtitle,
+      category: category,
+      priority: priority,
+      urgency: urgency,
+      difficulty: difficulty,
+      estimatedTimeMinutes: estimatedTime,
+      energyNeeded: energyNeeded,
+      linkedGoalId: linkedGoalId,
+      subtasks: subtasks ?? [],
+    );
+    _taskDomainState.addTask(newItem);
 
     // Update weekly tasks mission progress
     if (_missions.length > 2) {
@@ -2283,96 +2290,54 @@ class AppStateProvider with ChangeNotifier {
         }
       }
     }
-    _firebaseService.saveUserSubcollectionDocument("tasks", newTaskId, newTask);
+    _firebaseService.saveUserSubcollectionDocument("tasks", newItem.id, newItem.toMap());
     _syncToFirebase();
     notifyListeners();
   }
 
   void addSubTask(String taskId, String subtaskTitle) {
     if (subtaskTitle.trim().isEmpty) return;
-    Map<String, dynamic>? targetTask;
-    for (var task in _tasks) {
-      if (task['id'] == taskId) {
-        final List subtasks = List.from(task['subtasks'] ?? []);
-        subtasks.add({
-          'id': DateTime.now().millisecondsSinceEpoch.toString(),
-          'title': subtaskTitle.trim(),
-          'isCompleted': false,
-        });
-        task['subtasks'] = subtasks;
-        targetTask = task;
-        break;
-      }
-    }
-    if (targetTask != null) {
-      _firebaseService.saveUserSubcollectionDocument(
-          "tasks", taskId, targetTask);
+    _taskDomainState.addSubTask(taskId, subtaskTitle.trim());
+    final taskMap = _taskDomainState.tasksAsMaps.firstWhere((t) => t['id'] == taskId, orElse: () => {});
+    if (taskMap.isNotEmpty) {
+      _firebaseService.saveUserSubcollectionDocument("tasks", taskId, taskMap);
     }
     _syncToFirebase();
     notifyListeners();
   }
 
   void toggleSubTask(String taskId, String subtaskId) {
-    Map<String, dynamic>? targetTask;
-    for (var task in _tasks) {
-      if (task['id'] == taskId) {
-        final List subtasks = List.from(task['subtasks'] ?? []);
-        for (var st in subtasks) {
-          if (st['id'] == subtaskId) {
-            st['isCompleted'] = !(st['isCompleted'] == true);
-            break;
-          }
-        }
-        task['subtasks'] = subtasks;
-        targetTask = task;
-        break;
-      }
-    }
-    if (targetTask != null) {
-      _firebaseService.saveUserSubcollectionDocument(
-          "tasks", taskId, targetTask);
+    _taskDomainState.toggleSubTask(taskId, subtaskId);
+    final taskMap = _taskDomainState.tasksAsMaps.firstWhere((t) => t['id'] == taskId, orElse: () => {});
+    if (taskMap.isNotEmpty) {
+      _firebaseService.saveUserSubcollectionDocument("tasks", taskId, taskMap);
     }
     _syncToFirebase();
     notifyListeners();
   }
 
   void deleteSubTask(String taskId, String subtaskId) {
-    Map<String, dynamic>? targetTask;
-    for (var task in _tasks) {
-      if (task['id'] == taskId) {
-        final List subtasks = List.from(task['subtasks'] ?? []);
-        subtasks.removeWhere((st) => st['id'] == subtaskId);
-        task['subtasks'] = subtasks;
-        targetTask = task;
-        break;
-      }
-    }
-    if (targetTask != null) {
-      _firebaseService.saveUserSubcollectionDocument(
-          "tasks", taskId, targetTask);
+    _taskDomainState.deleteSubTask(taskId, subtaskId);
+    final taskMap = _taskDomainState.tasksAsMaps.firstWhere((t) => t['id'] == taskId, orElse: () => {});
+    if (taskMap.isNotEmpty) {
+      _firebaseService.saveUserSubcollectionDocument("tasks", taskId, taskMap);
     }
     _syncToFirebase();
     notifyListeners();
   }
 
   void toggleTask(String id) {
-    Map<String, dynamic>? targetTask;
-    for (var task in _tasks) {
-      if (task['id'] == id) {
-        task['isCompleted'] = !task['isCompleted'];
-        targetTask = task;
-        break;
-      }
-    }
-    if (targetTask != null) {
-      _firebaseService.saveUserSubcollectionDocument("tasks", id, targetTask);
+    _taskDomainState.toggleTask(id);
+    final taskMap = _taskDomainState.tasksAsMaps.firstWhere((t) => t['id'] == id, orElse: () => {});
+    if (taskMap.isNotEmpty) {
+      _firebaseService.saveUserSubcollectionDocument("tasks", id, taskMap);
     }
     _syncToFirebase();
     notifyListeners();
   }
 
   void deleteTask(String id) {
-    _tasks.removeWhere((t) => t['id'] == id);
+    _taskDomainState.deleteTask(id);
     _firebaseService.deleteUserSubcollectionDocument("tasks", id);
     _syncToFirebase();
     notifyListeners();
@@ -2486,19 +2451,16 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Agenda Actions
+  // Agenda Actions - Forwarded to AgendaDomainState & synchronized
   void addAgendaEvent(String title, String time) {
-    _agendaEvents.add({
-      'title': title,
-      'time': time,
-    });
+    _agendaDomainState.addEvent(title, time);
     _syncToFirebase();
     notifyListeners();
   }
 
   void removeAgendaEvent(int index) {
-    if (index >= 0 && index < _agendaEvents.length) {
-      _agendaEvents.removeAt(index);
+    if (index >= 0 && index < _agendaDomainState.count) {
+      _agendaDomainState.removeEventAt(index);
       _syncToFirebase();
       notifyListeners();
     }
@@ -2712,44 +2674,9 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Aura percentage calculation
+  // Aura percentage calculation - delegates to canonical 6-pillar auraScore
   double get auraPercentage {
-    // Pillar 1: Objectifs (25 pts)
-    int goalsPillarScore = 20 + (_level > 2 ? 5 : 2);
-
-    // Pillar 2: Gestion des tâches (25 pts)
-    double tasksCompletedRatio = _tasks.isNotEmpty
-        ? (_tasks.where((tk) => tk['isCompleted'] == true).length /
-            _tasks.length)
-        : 0.5;
-    int tasksPillarScore = (tasksCompletedRatio * 25).round();
-
-    // Pillar 3: Focus (20 pts)
-    // Focus minutes can be high, normalize around 120 mins
-    int focusPillarScore =
-        ((_focusMinutesTotal / 120.0) * 20.0).round().clamp(0, 20);
-
-    // Pillar 4: Bien-être (25 pts)
-    int wellnessPillarScore = _hasCheckedInToday
-        ? (((_dailyMood +
-                        _dailyEnergy +
-                        _dailyMotivation +
-                        (6 - _dailyStress)) /
-                    20.0) *
-                25.0)
-            .round()
-        : 18;
-
-    // Pillar 5: Bonus (5 pts)
-    int bonusPillarScore = (_streak >= 5 ? 5 : _streak).clamp(0, 5);
-
-    double calculated = (goalsPillarScore +
-            tasksPillarScore +
-            focusPillarScore +
-            wellnessPillarScore +
-            bonusPillarScore)
-        .toDouble();
-    return calculated.clamp(10.0, 100.0);
+    return auraScore.toDouble();
   }
 
   String get auraLabel {
