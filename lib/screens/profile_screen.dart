@@ -971,9 +971,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildStatsTab(BuildContext context, AppStateProvider state) {
     final langCode = state.currentLocale.languageCode;
     
-    // Line chart history data driven dynamically by current canonical aura score
+    // Line chart mock history data incorporating the real current wellness/aura score
     final double currentAura = state.auraPercentage;
-    final List<double> wellnessHistory = List<double>.filled(7, currentAura);
+    final List<double> wellnessHistory = [70, 75, 68, 80, 85, 78, currentAura];
     
     // Focus hours history incorporating real current total focus minutes
     final int currentFocus = state.focusMinutesTotal;
