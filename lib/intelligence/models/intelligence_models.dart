@@ -322,3 +322,121 @@ class ContextSnapshot {
   final DateTime generatedAt;
   final String source;
 }
+
+/// Structured Representation of the User's Current Situation (Generation 1/4).
+class SituationModel {
+  final String capacityLevel; // 'low', 'medium', 'high'
+  final int mentalBattery;
+  final String workloadLevel; // 'low', 'medium', 'high', 'overload'
+  final int openTaskCount;
+  final int overdueTaskCount;
+  final String timePressureLevel; // 'none', 'moderate', 'high'
+  final int scheduledEventsCount;
+  final String goalAlignmentStatus; // 'none', 'active', 'progressing'
+  final int activeGoalCount;
+  final int activeMissionCount;
+  final int auraScore;
+  final int userLevel;
+  final int streakDays;
+  final String currentFriction; // FrictionCategory or 'NO_FRICTION' or 'INSUFFICIENT_CONTEXT'
+  final bool hasCheckedInToday;
+  final String contextSignal;
+  final DateTime generatedAt;
+
+  const SituationModel({
+    required this.capacityLevel,
+    required this.mentalBattery,
+    required this.workloadLevel,
+    required this.openTaskCount,
+    required this.overdueTaskCount,
+    required this.timePressureLevel,
+    required this.scheduledEventsCount,
+    required this.goalAlignmentStatus,
+    required this.activeGoalCount,
+    required this.activeMissionCount,
+    required this.auraScore,
+    required this.userLevel,
+    required this.streakDays,
+    required this.currentFriction,
+    required this.hasCheckedInToday,
+    required this.contextSignal,
+    required this.generatedAt,
+  });
+
+  factory SituationModel.fromSnapshot(ContextSnapshot snapshot) {
+    // Capacity
+    final battery = snapshot.mentalBattery;
+    final capacity = battery < 35
+        ? 'low'
+        : battery < 65
+            ? 'medium'
+            : 'high';
+
+    // Workload
+    final openCount = snapshot.openTasks.length;
+    final overdueCount = snapshot.openTasks.where((t) => t.urgency == 'High').length;
+    final workload = openCount >= 7 || overdueCount >= 3
+        ? 'overload'
+        : openCount >= 4
+            ? 'high'
+            : openCount >= 1
+                ? 'medium'
+                : 'low';
+
+    // Time Pressure
+    final agendaCount = snapshot.agendaEvents.length;
+    final timePressure = agendaCount >= 4
+        ? 'high'
+        : agendaCount >= 1
+            ? 'moderate'
+            : 'none';
+
+    // Goal Alignment
+    final goalCount = snapshot.goals.length;
+    final missionCount = snapshot.missions.length;
+    final goalStatus = (goalCount > 0 || missionCount > 0)
+        ? (snapshot.goals.any((g) => g.progress > 0) ? 'progressing' : 'active')
+        : 'none';
+
+    // Friction
+    String friction = 'NO_FRICTION';
+    if (!snapshot.hasCheckedInToday && snapshot.tasks.isEmpty) {
+      friction = 'INSUFFICIENT_CONTEXT';
+    } else if (battery < 35) {
+      friction = 'CAPACITY_FRICTION';
+    } else if (workload == 'overload') {
+      friction = 'OVERLOAD_FRICTION';
+    } else if (agendaCount > 0 && openCount > 0) {
+      friction = 'TIME_FRICTION';
+    }
+
+    // Context Signal
+    final signal = friction == 'INSUFFICIENT_CONTEXT'
+        ? 'Check-In requis'
+        : friction == 'CAPACITY_FRICTION'
+            ? 'Capacité réduite - Mode Récupération'
+            : workload == 'overload'
+                ? 'Surcharge de travail détectée'
+                : 'Situation stable';
+
+    return SituationModel(
+      capacityLevel: capacity,
+      mentalBattery: battery,
+      workloadLevel: workload,
+      openTaskCount: openCount,
+      overdueTaskCount: overdueCount,
+      timePressureLevel: timePressure,
+      scheduledEventsCount: agendaCount,
+      goalAlignmentStatus: goalStatus,
+      activeGoalCount: goalCount,
+      activeMissionCount: missionCount,
+      auraScore: snapshot.auraScore,
+      userLevel: snapshot.level,
+      streakDays: snapshot.streak,
+      currentFriction: friction,
+      hasCheckedInToday: snapshot.hasCheckedInToday,
+      contextSignal: signal,
+      generatedAt: DateTime.now(),
+    );
+  }
+}

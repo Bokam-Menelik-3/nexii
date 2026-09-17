@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../core/services/firebase_service.dart';
+import '../domains/adaptive_state/mental_battery_domain_state.dart';
 import '../domains/agenda/agenda_domain_state.dart';
+import '../domains/aura/aura_domain_state.dart';
+import '../domains/aura/aura_result.dart';
+import '../domains/check_in/check_in_domain_state.dart';
 import '../domains/focus/focus_domain_state.dart';
 import '../domains/tasks/task_domain_state.dart';
 import '../domains/tasks/task_item.dart';
@@ -21,6 +25,15 @@ class AppStateProvider with ChangeNotifier {
 
   final FocusDomainState _focusDomainState = FocusDomainState();
   FocusDomainState get focusDomainState => _focusDomainState;
+
+  final CheckInDomainState _checkInDomainState = CheckInDomainState();
+  CheckInDomainState get checkInDomainState => _checkInDomainState;
+
+  final MentalBatteryDomainState _mentalBatteryDomainState = MentalBatteryDomainState();
+  MentalBatteryDomainState get mentalBatteryDomainState => _mentalBatteryDomainState;
+
+  final AuraDomainState _auraDomainState = AuraDomainState();
+  AuraDomainState get auraDomainState => _auraDomainState;
   final FirebaseService _firebaseService = FirebaseService();
   bool _isSyncing = false;
   bool _isDisposed = false;
@@ -360,21 +373,19 @@ class AppStateProvider with ChangeNotifier {
     }
   }
 
-  // --- Energy Engine & Mental Battery ---
-  int _mentalBattery = 82; // 0 to 100
-  int _cognitiveFatigue = 28; // 0 to 100
-  int _emotionalLoad = 18; // 0 to 100
-  int _recoveryIndex = 88; // 0 to 100
-
-  int get mentalBattery => _mentalBattery;
-  int get cognitiveFatigue => _cognitiveFatigue;
-  int get emotionalLoad => _emotionalLoad;
-  int get recoveryIndex => _recoveryIndex;
+  // --- Energy Engine & Mental Battery - Delegated to MentalBatteryDomainState ---
+  int get mentalBattery => _mentalBatteryDomainState.mentalBattery;
+  int get _mentalBattery => _mentalBatteryDomainState.mentalBattery;
+  int get cognitiveFatigue => _mentalBatteryDomainState.cognitiveFatigue;
+  int get _cognitiveFatigue => _mentalBatteryDomainState.cognitiveFatigue;
+  int get emotionalLoad => _mentalBatteryDomainState.emotionalLoad;
+  int get recoveryIndex => _mentalBatteryDomainState.recoveryIndex;
+  int get _recoveryIndex => _mentalBatteryDomainState.recoveryIndex;
 
   void updateMentalBattery(int change, {String reason = ''}) {
-    _mentalBattery = (_mentalBattery + change).clamp(0, 100);
-    if (_mentalBattery < 30 && !_isCrisisMode) {
-      _isCrisisMode = true;
+    _mentalBatteryDomainState.updateBattery(change);
+    if (_mentalBatteryDomainState.mentalBattery < 30 && !_mentalBatteryDomainState.isCrisisMode) {
+      _mentalBatteryDomainState.setCrisisMode(true, adjustBattery: false);
       addNotification(
           "Mode Crise Déclenché 🛡️",
           "L'IA a détecté une baisse importante de ta batterie mentale (<30%). Le planning est allégé !",
@@ -1182,137 +1193,27 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // --- ✨ NEXII AURA SCORE ENGINE (0–100) ---
-  double get auraP {
-    final completed = _tasks.where((t) => t['isCompleted'] == true).length;
-    final total = _tasks.isEmpty ? 1 : _tasks.length;
-    final double tc = (completed / total) * 100;
+  // --- ✨ NEXII AURA SCORE ENGINE (0–100) - Delegated to AuraDomainState ---
+  AuraResult get currentAuraResult => _auraDomainState.computeAura(
+        tasks: _tasks,
+        livingGoals: _livingGoals,
+        focusMinutesTotal: _focusMinutesTotal,
+        dailySleep: _dailySleep,
+        selectedMood: _selectedMood,
+        streak: _streak,
+        cognitiveFatigue: _cognitiveFatigue,
+      );
 
-    double opSum = 0;
-    if (_livingGoals.isNotEmpty) {
-      for (var g in _livingGoals) {
-        final prog =
-            (g['progress'] is num) ? (g['progress'] as num).toDouble() : 0.7;
-        opSum += prog * 100;
-      }
-      opSum /= _livingGoals.length;
-    } else {
-      opSum = 72.0;
-    }
-    const double m = 65.0; // Milestones accomplishment
-    return (tc * 0.5) + (opSum * 0.3) + (m * 0.2);
-  }
+  double get auraP => _auraDomainState.computeAuraP(_tasks, _livingGoals);
+  double get auraF => _auraDomainState.computeAuraF(_focusMinutesTotal);
+  double get auraE => _auraDomainState.computeAuraE(_dailySleep, _selectedMood);
+  double get auraR => _auraDomainState.computeAuraR(_streak);
+  double get auraG => _auraDomainState.computeAuraG();
+  double get auraW => _auraDomainState.computeAuraW(_cognitiveFatigue);
 
-  double get auraF {
-    final double hf = (_focusMinutesTotal / 60.0 * 25.0).clamp(0.0, 100.0);
-    const double c = 82.0; // Quality of focus sessions
-    const double d = 78.0; // Distraction reduction
-    return (hf * 0.5) + (c * 0.3) + (d * 0.2);
-  }
+  int get auraScore => currentAuraResult.score;
 
-  double get auraE {
-    final double s = (_dailySleep > 0 ? _dailySleep * 10.0 : 80.0);
-    const double rc = 85.0; // Active recovery
-    double mh = 80.0;
-    switch (_selectedMood) {
-      case 'Stressé':
-        mh = 40.0;
-        break;
-      case 'Neutre':
-        mh = 60.0;
-        break;
-      case 'Bien':
-        mh = 80.0;
-        break;
-      case 'Inspiré':
-        mh = 95.0;
-        break;
-      case 'Serein':
-        mh = 100.0;
-        break;
-    }
-    return (s * 0.35) + (rc * 0.35) + (mh * 0.30);
-  }
-
-  double get auraR {
-    final double streakScore = (_streak * 10.0).clamp(0.0, 100.0);
-    const double habitsScore = 80.0;
-    return (streakScore * 0.6) + (habitsScore * 0.4);
-  }
-
-  double get auraG {
-    const double pr = 82.0; // Estimation precision
-    const double cl = 88.0; // Goal clarity
-    return (pr * 0.5) + (cl * 0.5);
-  }
-
-  double get auraW {
-    final double stressInversed = (100.0 - _cognitiveFatigue).clamp(0.0, 100.0);
-    const double emotion = 82.0;
-    const double balance = 80.0;
-    return (stressInversed * 0.4) + (emotion * 0.3) + (balance * 0.3);
-  }
-
-  int get auraScore {
-    final double raw = (auraP * 0.25) +
-        (auraF * 0.20) +
-        (auraE * 0.20) +
-        (auraR * 0.15) +
-        (auraG * 0.10) +
-        (auraW * 0.10);
-    return raw.round().clamp(0, 100);
-  }
-
-  Map<String, String> get auraLevelInfo {
-    final score = auraScore;
-    if (score <= 20) {
-      return {
-        'level': '0–20',
-        'icon': '🌑',
-        'title': 'Recharge nécessaire',
-        'action': 'Nexii réduit la pression et propose des petites victoires.',
-      };
-    } else if (score <= 40) {
-      return {
-        'level': '21–40',
-        'icon': '🌘',
-        'title': 'Reconstruction',
-        'action':
-            'Nexii allège le planning et propose des objectifs très accessibles.',
-      };
-    } else if (score <= 60) {
-      return {
-        'level': '41–60',
-        'icon': '🌗',
-        'title': 'Progression',
-        'action':
-            'Nexii maintient un rythme équilibré et consolide tes habitudes.',
-      };
-    } else if (score <= 75) {
-      return {
-        'level': '61–75',
-        'icon': '🌕',
-        'title': 'Équilibre',
-        'action': 'Excellente harmonie entre effort, focus et bien-être.',
-      };
-    } else if (score <= 90) {
-      return {
-        'level': '76–90',
-        'icon': '✨',
-        'title': 'Haute Aura',
-        'action':
-            'Nexii augmente progressivement les défis et optimise ta productivité.',
-      };
-    } else {
-      return {
-        'level': '91–100',
-        'icon': '🌟',
-        'title': 'Aura Légendaire',
-        'action':
-            'Nexii active le mode "Peak Performance" pour libérer ton plein potentiel.',
-      };
-    }
-  }
+  Map<String, String> get auraLevelInfo => currentAuraResult.toLevelInfoMap();
 
   // --- 🎚️ NEXII AUTONOMY LEVEL (1 to 4) ---
   int _autonomyLevel = 2; // Default 2: Assistant
@@ -1784,31 +1685,34 @@ class AppStateProvider with ChangeNotifier {
   }
 
   // Daily Check-in State
-  int _dailyMood = 3; // 1-5
-  int _dailyEnergy = 3; // 1-5
-  int _dailyMotivation = 3; // 1-5
-  int _dailyStress = 3; // 1-5
-  int _dailySleep = 3; // 1-5
-  bool _hasCheckedInToday = false;
-  String _lastManualCheckInDate = '';
-
-  int get dailyMood => _dailyMood;
-  int get dailyEnergy => _dailyEnergy;
-  int get dailyMotivation => _dailyMotivation;
-  int get dailyStress => _dailyStress;
-  int get dailySleep => _dailySleep;
-  bool get hasCheckedInToday => _hasCheckedInToday;
-  String get lastManualCheckInDate => _lastManualCheckInDate;
+  // --- Check-In State - Delegated to CheckInDomainState ---
+  int get dailyMood => _checkInDomainState.dailyMood;
+  int get _dailyMood => _checkInDomainState.dailyMood;
+  int get dailyEnergy => _checkInDomainState.dailyEnergy;
+  int get _dailyEnergy => _checkInDomainState.dailyEnergy;
+  int get dailyMotivation => _checkInDomainState.dailyMotivation;
+  int get _dailyMotivation => _checkInDomainState.dailyMotivation;
+  int get dailyStress => _checkInDomainState.dailyStress;
+  int get _dailyStress => _checkInDomainState.dailyStress;
+  int get dailySleep => _checkInDomainState.dailySleep;
+  int get _dailySleep => _checkInDomainState.dailySleep;
+  bool get hasCheckedInToday => _checkInDomainState.hasCheckedInToday;
+  bool get _hasCheckedInToday => _checkInDomainState.hasCheckedInToday;
+  String get lastManualCheckInDate => _checkInDomainState.lastManualCheckInDate;
+  String get _lastManualCheckInDate => _checkInDomainState.lastManualCheckInDate;
 
   void submitDailyCheckIn(
       int mood, int energy, int motivation, int stress, int sleep) {
-    _dailyMood = mood;
-    _dailyEnergy = energy;
-    _dailyMotivation = motivation;
-    _dailyStress = stress;
-    _dailySleep = sleep;
-    _hasCheckedInToday = true;
-    _lastManualCheckInDate = DateTime.now().toIso8601String().split('T')[0];
+    _checkInDomainState.submitCheckIn(
+      mood: mood,
+      energy: energy,
+      motivation: motivation,
+      stress: stress,
+      sleep: sleep,
+    );
+    // Recalculate mental battery recovery on check-in
+    final batteryBonus = ((energy + motivation + (6 - stress)) / 15.0 * 20.0).round();
+    _mentalBatteryDomainState.updateBattery(batteryBonus);
     _xp += 30;
     if (_xp >= 100 * _level) {
       _xp -= 100 * _level;
@@ -1911,13 +1815,8 @@ class AppStateProvider with ChangeNotifier {
     _focusDomainState.clear();
     _totalBudget = 0.0;
     _isCrisisMode = false;
-    _dailyMood = 3;
-    _dailyEnergy = 3;
-    _dailyMotivation = 3;
-    _dailyStress = 3;
-    _dailySleep = 3;
-    _hasCheckedInToday = false;
-    _lastManualCheckInDate = '';
+    _checkInDomainState.clear();
+    _mentalBatteryDomainState.clear();
     _taskDomainState.clear();
     _focusDomainState.clear();
     _goals.clear();
@@ -2091,25 +1990,20 @@ class AppStateProvider with ChangeNotifier {
       if (cloudData.containsKey('lang')) {
         _currentLocale = Locale(cloudData['lang']);
       }
-      final todayStr = DateTime.now().toIso8601String().split('T')[0];
-      if (cloudData.containsKey('lastManualCheckInDate')) {
-        _lastManualCheckInDate = cloudData['lastManualCheckInDate'] ?? '';
-        _hasCheckedInToday = _lastManualCheckInDate == todayStr;
+      _checkInDomainState.loadFromCloud(
+        mood: cloudData['checkInMood'] ?? 3,
+        energy: cloudData['checkInEnergy'] ?? 3,
+        motivation: cloudData['checkInMotivation'] ?? 3,
+        stress: cloudData['checkInStress'] ?? 3,
+        sleep: cloudData['checkInSleep'] ?? 3,
+        lastCheckInDate: cloudData['lastManualCheckInDate']?.toString() ?? '',
+      );
+      if (cloudData.containsKey('mentalBattery')) {
+        _mentalBatteryDomainState.setBattery((cloudData['mentalBattery'] as num).toInt());
       }
-      if (cloudData.containsKey('mentalBattery'))
-        _mentalBattery = cloudData['mentalBattery'];
-      if (cloudData.containsKey('isCrisisMode'))
-        _isCrisisMode = cloudData['isCrisisMode'] == true;
-      if (cloudData.containsKey('checkInMood'))
-        _dailyMood = cloudData['checkInMood'];
-      if (cloudData.containsKey('checkInEnergy'))
-        _dailyEnergy = cloudData['checkInEnergy'];
-      if (cloudData.containsKey('checkInMotivation'))
-        _dailyMotivation = cloudData['checkInMotivation'];
-      if (cloudData.containsKey('checkInStress'))
-        _dailyStress = cloudData['checkInStress'];
-      if (cloudData.containsKey('checkInSleep'))
-        _dailySleep = cloudData['checkInSleep'];
+      if (cloudData.containsKey('isCrisisMode')) {
+        _mentalBatteryDomainState.setCrisisMode(cloudData['isCrisisMode'] == true);
+      }
       _isOnboardingComplete = true;
       _lastFirestoreSync = DateTime.now();
       await loadCommunityPosts();
@@ -3144,7 +3038,6 @@ class AppStateProvider with ChangeNotifier {
           "Mode Examens actif : priorisation des révisions et protection de l'énergie.",
           "info");
     } else if (scenarioKey == 'overload_recovery') {
-      _cognitiveFatigue = 82;
       _isRecoveryMode = true;
       updateMentalBattery(25, reason: 'Simulation Surcharge & Burnout');
       addNotification(
@@ -3153,8 +3046,7 @@ class AppStateProvider with ChangeNotifier {
           "warning");
     } else if (scenarioKey == 'peak_performance') {
       _streak = 30;
-      _mentalBattery = 98;
-      _cognitiveFatigue = 15;
+      _mentalBatteryDomainState.setBattery(98);
       setAutonomyLevel(4);
       addNotification(
           "Scénario Peak Performance Activé 🌟",

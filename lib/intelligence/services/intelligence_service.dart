@@ -106,6 +106,10 @@ class IntelligenceService {
     );
   }
 
+  SituationModel understandSituation(ContextSnapshot snapshot) {
+    return understandNode.evaluateSituation(snapshot);
+  }
+
   N1Summary evaluateN1(ContextSnapshot snapshot) {
     return n1DecisionEngine.evaluate(snapshot);
   }
