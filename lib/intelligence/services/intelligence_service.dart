@@ -110,6 +110,10 @@ class IntelligenceService {
     return understandNode.evaluateSituation(snapshot);
   }
 
+  AnticipationModel anticipateFuture(ContextSnapshot snapshot) {
+    return anticipateNode.evaluateAnticipation(snapshot);
+  }
+
   N1Summary evaluateN1(ContextSnapshot snapshot) {
     return n1DecisionEngine.evaluate(snapshot);
   }

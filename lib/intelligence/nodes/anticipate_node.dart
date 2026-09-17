@@ -18,8 +18,14 @@ class AnticipateNode extends IntelligenceNode {
         snapshot.focusMinutesTotal > 0;
   }
 
+  AnticipationModel evaluateAnticipation(ContextSnapshot snapshot) {
+    final situation = SituationModel.fromSnapshot(snapshot);
+    return AnticipationModel.evaluate(snapshot, situation);
+  }
+
   @override
   IntelligenceResult execute(ContextSnapshot snapshot) {
+    final anticipation = evaluateAnticipation(snapshot);
     final openTaskCount = snapshot.openTasks.length;
     final battery = snapshot.mentalBattery;
     final stress = snapshot.dailyStress ?? 0;
@@ -84,6 +90,11 @@ class AnticipateNode extends IntelligenceNode {
         'mentalBattery': battery,
         'dailyStress': stress,
         'focusMinutes': focusMinutes,
+        'anticipationType': anticipation.type,
+        'anticipationDescription': anticipation.description,
+        'anticipationHorizon': anticipation.horizon,
+        'anticipationConfidence': anticipation.confidence,
+        'affectedDomain': anticipation.affectedDomain,
       },
     );
   }

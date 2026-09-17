@@ -440,3 +440,111 @@ class SituationModel {
     );
   }
 }
+
+/// Structured Representation of Future Anticipations & Risk Signals (Generation 2/4).
+class AnticipationModel {
+  final String type; // 'RISK', 'OPPORTUNITY', 'CHANGE', 'CONSTRAINT', 'NO_ANTICIPATION'
+  final String description;
+  final String horizon; // 'immediate', 'short_term', 'near_term'
+  final List<String> evidence;
+  final double confidence; // 0.0 to 1.0
+  final String potentialConsequence;
+  final String affectedDomain; // 'Tasks', 'Capacity', 'Time', 'Goals', 'General'
+  final DateTime generatedAt;
+
+  const AnticipationModel({
+    required this.type,
+    required this.description,
+    required this.horizon,
+    required this.evidence,
+    required this.confidence,
+    required this.potentialConsequence,
+    required this.affectedDomain,
+    required this.generatedAt,
+  });
+
+  factory AnticipationModel.evaluate(ContextSnapshot snapshot, SituationModel situation) {
+    final evidenceList = <String>[];
+
+    // Check Capacity Risk
+    if (situation.capacityLevel == 'low' || snapshot.mentalBattery < 35) {
+      evidenceList.add('Batterie mentale sous le seuil critique (${snapshot.mentalBattery}%)');
+      if (snapshot.dailyStress != null && snapshot.dailyStress! >= 4) {
+        evidenceList.add('Niveau de stress élevé (${snapshot.dailyStress}/5)');
+      }
+      return AnticipationModel(
+        type: 'RISK',
+        description: 'Risque imminent d\'épuisement et de baisse de clarté cognitive',
+        horizon: 'immediate',
+        evidence: evidenceList,
+        confidence: 0.88,
+        potentialConsequence: 'Incapacité à finaliser les tâches complexes prévues aujourd\'hui',
+        affectedDomain: 'Capacity',
+        generatedAt: DateTime.now(),
+      );
+    }
+
+    // Check Workload / Overload Risk
+    if (situation.workloadLevel == 'overload' || snapshot.openTasks.length >= 7) {
+      evidenceList.add('Backlog élevé : ${snapshot.openTasks.length} tâches ouvertes');
+      final highPrioCount = snapshot.openTasks.where((t) => t.priority == 'High' || t.urgency == 'High').length;
+      if (highPrioCount > 0) {
+        evidenceList.add('$highPrioCount tâche(s) à haute priorité non finalisée(s)');
+      }
+      return AnticipationModel(
+        type: 'RISK',
+        description: 'Risque d\'embouteillage de planning et de retard sur les échéances',
+        horizon: 'short_term',
+        evidence: evidenceList,
+        confidence: 0.82,
+        potentialConsequence: 'Report forcé de plusieurs tâches prioritaires vers les jours suivants',
+        affectedDomain: 'Tasks',
+        generatedAt: DateTime.now(),
+      );
+    }
+
+    // Check Constraint / Time Conflict
+    if (situation.timePressureLevel == 'high' || (snapshot.agendaEvents.isNotEmpty && snapshot.openTasks.isNotEmpty)) {
+      evidenceList.add('${snapshot.agendaEvents.length} événement(s) planifié(s) dans l\'agenda');
+      evidenceList.add('${snapshot.openTasks.length} tâche(s) en attente d\'exécution');
+      return AnticipationModel(
+        type: 'CONSTRAINT',
+        description: 'Pression temporelle élevée : chevauchement potentiel agenda et tâches',
+        horizon: 'short_term',
+        evidence: evidenceList,
+        confidence: 0.75,
+        potentialConsequence: 'Fenêtres de travail fragmentées et manque de plages de Deep Work',
+        affectedDomain: 'Time',
+        generatedAt: DateTime.now(),
+      );
+    }
+
+    // Check Opportunity
+    if (situation.capacityLevel == 'high' && situation.workloadLevel == 'low' && snapshot.openTasks.isNotEmpty) {
+      evidenceList.add('Excellente capacité cognitive (${snapshot.mentalBattery}%)');
+      evidenceList.add('Charge de travail modérée (${snapshot.openTasks.length} tâche open)');
+      return AnticipationModel(
+        type: 'OPPORTUNITY',
+        description: 'Fenêtre idéale pour avancer sur un objectif de fond ou une tâche complexe',
+        horizon: 'near_term',
+        evidence: evidenceList,
+        confidence: 0.78,
+        potentialConsequence: 'Gain d\'élan significatif et augmentation du score d\'Aura',
+        affectedDomain: 'Goals',
+        generatedAt: DateTime.now(),
+      );
+    }
+
+    // Default: No Anticipation required
+    return AnticipationModel(
+      type: 'NO_ANTICIPATION',
+      description: 'Aucun risque ou goulot d\'étranglement majeur anticipé à court terme',
+      horizon: 'near_term',
+      evidence: const ['Régularité et capacité dans les seuils nominaux'],
+      confidence: 0.65,
+      potentialConsequence: 'Maintien de la trajectoire actuelle sans ajustement nécessaire',
+      affectedDomain: 'General',
+      generatedAt: DateTime.now(),
+    );
+  }
+}
