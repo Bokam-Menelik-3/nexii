@@ -17,10 +17,18 @@ class RecommendNode extends IntelligenceNode {
         snapshot.goals.isNotEmpty;
   }
 
-  AdaptiveDecision evaluateDecision(ContextSnapshot snapshot) {
+  AdaptiveDecision evaluateDecision(
+    ContextSnapshot snapshot, {
+    PersonalLearningContext? learningContext,
+  }) {
     final situation = SituationModel.fromSnapshot(snapshot);
     final anticipation = AnticipationModel.evaluate(snapshot, situation);
-    return AdaptiveDecision.evaluate(snapshot, situation, anticipation);
+    return AdaptiveDecision.evaluate(
+      snapshot,
+      situation,
+      anticipation,
+      learningContext: learningContext,
+    );
   }
 
   @override

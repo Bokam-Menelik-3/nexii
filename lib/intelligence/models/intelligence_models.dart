@@ -441,6 +441,153 @@ class SituationModel {
   }
 }
 
+enum OutcomeType {
+  completed,
+  partiallyCompleted,
+  ignored,
+  refused,
+  abandoned,
+  noResult,
+}
+
+/// Represents an observed action outcome in a specific context (Generation 4/4).
+class LearningEvent {
+  final String eventId;
+  final DateTime timestamp;
+  final String? decisionId;
+  final String actionId;
+  final String actionType;
+  final String? targetType;
+  final String? targetId;
+  final String capacityLevel;
+  final String workloadLevel;
+  final String frictionType;
+  final OutcomeType outcome;
+
+  const LearningEvent({
+    required this.eventId,
+    required this.timestamp,
+    this.decisionId,
+    required this.actionId,
+    required this.actionType,
+    this.targetType,
+    this.targetId,
+    required this.capacityLevel,
+    required this.workloadLevel,
+    required this.frictionType,
+    required this.outcome,
+  });
+
+  bool get isPositive =>
+      outcome == OutcomeType.completed || outcome == OutcomeType.partiallyCompleted;
+
+  bool get isNegative =>
+      outcome == OutcomeType.abandoned || outcome == OutcomeType.refused;
+}
+
+/// Consolidated knowledge pattern for an action within a context (Generation 4/4).
+class PersonalLearning {
+  final String actionType;
+  final String? targetType;
+  final String contextPattern; // e.g. "capacity:low|friction:CAPACITY_FRICTION"
+  final int totalAttempts;
+  final int positiveOutcomes;
+  final int negativeOutcomes;
+  final int ignoredOutcomes;
+  final double confidence; // Bounded 0.0 to 1.0 based on cumulative sample size
+  final double effectivenessScore; // 0.0 to 1.0
+  final DateTime lastObserved;
+
+  const PersonalLearning({
+    required this.actionType,
+    this.targetType,
+    required this.contextPattern,
+    required this.totalAttempts,
+    required this.positiveOutcomes,
+    required this.negativeOutcomes,
+    required this.ignoredOutcomes,
+    required this.confidence,
+    required this.effectivenessScore,
+    required this.lastObserved,
+  });
+
+  factory PersonalLearning.fromEvents({
+    required String actionType,
+    String? targetType,
+    required String contextPattern,
+    required List<LearningEvent> events,
+  }) {
+    if (events.isEmpty) {
+      return PersonalLearning(
+        actionType: actionType,
+        targetType: targetType,
+        contextPattern: contextPattern,
+        totalAttempts: 0,
+        positiveOutcomes: 0,
+        negativeOutcomes: 0,
+        ignoredOutcomes: 0,
+        confidence: 0.0,
+        effectivenessScore: 0.5,
+        lastObserved: DateTime.now(),
+      );
+    }
+
+    final total = events.length;
+    final positive = events.where((e) => e.isPositive).length;
+    final negative = events.where((e) => e.isNegative).length;
+    final ignored = events.where((e) => e.outcome == OutcomeType.ignored).length;
+
+    // Confidence formula: logarithmic growth bounded at 0.95 (requires >= 3 events for >0.5 confidence)
+    final rawConfidence = total >= 3 ? (0.4 + (total * 0.1)).clamp(0.0, 0.95) : (total * 0.15);
+
+    // Effectiveness: positive ratio weighted against active attempts
+    final activeAttempts = positive + negative;
+    final effectiveness = activeAttempts > 0
+        ? (positive / activeAttempts).clamp(0.0, 1.0)
+        : 0.5;
+
+    final latestTime = events.map((e) => e.timestamp).reduce((a, b) => a.isAfter(b) ? a : b);
+
+    return PersonalLearning(
+      actionType: actionType,
+      targetType: targetType,
+      contextPattern: contextPattern,
+      totalAttempts: total,
+      positiveOutcomes: positive,
+      negativeOutcomes: negative,
+      ignoredOutcomes: ignored,
+      confidence: rawConfidence,
+      effectivenessScore: effectiveness,
+      lastObserved: latestTime,
+    );
+  }
+}
+
+/// Collection of established user learning patterns provided to G3 decisions (Generation 4/4).
+class PersonalLearningContext {
+  final List<PersonalLearning> learnings;
+
+  const PersonalLearningContext({
+    this.learnings = const <PersonalLearning>[],
+  });
+
+  static const empty = PersonalLearningContext();
+
+  PersonalLearning? findKnowledge({
+    required String actionType,
+    required String capacityLevel,
+    required String frictionType,
+  }) {
+    final pattern = 'capacity:$capacityLevel|friction:$frictionType';
+    for (final l in learnings) {
+      if (l.actionType == actionType && l.contextPattern == pattern && l.confidence >= 0.3) {
+        return l;
+      }
+    }
+    return null;
+  }
+}
+
 /// Deterministic Decision Model produced by G3 Adaptive Engine.
 class AdaptiveDecision {
   final String decisionType; // 'SELECT_TASK', 'RECOVERY', 'DECOMPOSE_TASK', 'PULSE_ACTION', 'CHECKIN_REQUIRED', 'NO_ACTION'
@@ -474,8 +621,9 @@ class AdaptiveDecision {
   factory AdaptiveDecision.evaluate(
     ContextSnapshot snapshot,
     SituationModel situation,
-    AnticipationModel anticipation,
-  ) {
+    AnticipationModel anticipation, {
+    PersonalLearningContext? learningContext,
+  }) {
     final evidenceList = <String>[];
 
     // Case 1: Insufficient Context -> CheckIn Required
