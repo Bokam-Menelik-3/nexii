@@ -114,6 +114,10 @@ class IntelligenceService {
     return anticipateNode.evaluateAnticipation(snapshot);
   }
 
+  AdaptiveDecision decideAdaptiveAction(ContextSnapshot snapshot) {
+    return recommendNode.evaluateDecision(snapshot);
+  }
+
   N1Summary evaluateN1(ContextSnapshot snapshot) {
     return n1DecisionEngine.evaluate(snapshot);
   }

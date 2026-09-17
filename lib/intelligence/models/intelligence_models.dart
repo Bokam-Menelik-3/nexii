@@ -441,6 +441,200 @@ class SituationModel {
   }
 }
 
+/// Deterministic Decision Model produced by G3 Adaptive Engine.
+class AdaptiveDecision {
+  final String decisionType; // 'SELECT_TASK', 'RECOVERY', 'DECOMPOSE_TASK', 'PULSE_ACTION', 'CHECKIN_REQUIRED', 'NO_ACTION'
+  final String? selectedActionId;
+  final IntelligentAction? primaryAction;
+  final String reason;
+  final PriorityLevel priorityLevel;
+  final double confidence; // 0.0 to 1.0
+  final String expectedBenefit;
+  final String frictionTarget;
+  final List<String> evidence;
+  final List<IntelligentAction> alternatives;
+  final bool isExecutable;
+  final DateTime generatedAt;
+
+  const AdaptiveDecision({
+    required this.decisionType,
+    this.selectedActionId,
+    this.primaryAction,
+    required this.reason,
+    required this.priorityLevel,
+    required this.confidence,
+    required this.expectedBenefit,
+    required this.frictionTarget,
+    required this.evidence,
+    this.alternatives = const <IntelligentAction>[],
+    required this.isExecutable,
+    required this.generatedAt,
+  });
+
+  factory AdaptiveDecision.evaluate(
+    ContextSnapshot snapshot,
+    SituationModel situation,
+    AnticipationModel anticipation,
+  ) {
+    final evidenceList = <String>[];
+
+    // Case 1: Insufficient Context -> CheckIn Required
+    if (situation.currentFriction == 'INSUFFICIENT_CONTEXT' || !snapshot.hasCheckedInToday) {
+      return AdaptiveDecision(
+        decisionType: 'CHECKIN_REQUIRED',
+        selectedActionId: 'action_checkin',
+        primaryAction: IntelligentAction(
+          actionId: 'action_checkin',
+          actionType: IntelligentActionType.startTask,
+          targetType: 'check_in',
+          priority: 95,
+          reason: 'Réaliser le Bilan Quotidien pour calibrer l\'IA',
+          createdAt: DateTime.now(),
+        ),
+        reason: 'Données d\'énergie quotidiennes non renseignées : Check-In nécessaire pour adapter l\'assistance',
+        priorityLevel: PriorityLevel.high,
+        confidence: 0.95,
+        expectedBenefit: 'Permet une calibration précise de la batterie mentale et du planning',
+        frictionTarget: 'INSUFFICIENT_CONTEXT',
+        evidence: const ['Check-In quotidien manquant'],
+        isExecutable: true,
+        generatedAt: DateTime.now(),
+      );
+    }
+
+    // Case 2: Capacity Risk -> Recovery Mode
+    if (situation.capacityLevel == 'low' || snapshot.mentalBattery < 35 || anticipation.affectedDomain == 'Capacity') {
+      evidenceList.add('Batterie mentale sous le seuil (${snapshot.mentalBattery}%)');
+      evidenceList.add('Stress perçu : ${snapshot.dailyStress ?? 3}/5');
+
+      final recoveryAction = IntelligentAction(
+        actionId: 'action_recovery',
+        actionType: IntelligentActionType.takeBreak,
+        targetType: 'system',
+        priority: 90,
+        reason: 'Activer le Mode Récupération pour protéger les réserves cognitives',
+        createdAt: DateTime.now(),
+      );
+
+      return AdaptiveDecision(
+        decisionType: 'RECOVERY',
+        selectedActionId: recoveryAction.actionId,
+        primaryAction: recoveryAction,
+        reason: 'Capacité cognitive fortement sollicitée : la priorité est d\'alléger la pression',
+        priorityLevel: PriorityLevel.critical,
+        confidence: 0.90,
+        expectedBenefit: 'Restauration de +25% de batterie mentale sans impacter les échéances réelles',
+        frictionTarget: 'CAPACITY_FRICTION',
+        evidence: evidenceList,
+        isExecutable: true,
+        generatedAt: DateTime.now(),
+      );
+    }
+
+    // Case 3: Overload or Clarity Risk -> Decompose Task
+    if (situation.workloadLevel == 'overload' || situation.overdueTaskCount >= 3) {
+      final topTask = snapshot.openTasks.isNotEmpty ? snapshot.openTasks.first : null;
+      evidenceList.add('Surcharge détectée : ${snapshot.openTasks.length} tâches ouvertes');
+
+      if (topTask != null) {
+        evidenceList.add('Tâche prioritaire ciblée : ${topTask.title}');
+        final decomposeAction = IntelligentAction(
+          actionId: 'task_decompose_${topTask.id}',
+          actionType: IntelligentActionType.proposeMicroTask,
+          targetType: 'task',
+          targetId: topTask.id,
+          priority: 85,
+          reason: 'Décomposer "${topTask.title}" en micro-actions simples',
+          createdAt: DateTime.now(),
+        );
+
+        return AdaptiveDecision(
+          decisionType: 'DECOMPOSE_TASK',
+          selectedActionId: decomposeAction.actionId,
+          primaryAction: decomposeAction,
+          reason: 'Surcharge de travail : la décomposition réduit la friction d\'amorce',
+          priorityLevel: PriorityLevel.high,
+          confidence: 0.85,
+          expectedBenefit: 'Baisse immédiate de la friction mentale et amorce d\'action en <2 min',
+          frictionTarget: 'OVERLOAD_FRICTION',
+          evidence: evidenceList,
+          isExecutable: true,
+          generatedAt: DateTime.now(),
+        );
+      }
+    }
+
+    // Case 4: Open Task Selection aligned with Goals
+    if (snapshot.openTasks.isNotEmpty) {
+      final bestTask = snapshot.openTasks.reduce((a, b) {
+        final scoreA = (a.priority == 'High' ? 3 : 1) + (a.linkedGoalId != null ? 2 : 0);
+        final scoreB = (b.priority == 'High' ? 3 : 1) + (b.linkedGoalId != null ? 2 : 0);
+        return scoreA >= scoreB ? a : b;
+      });
+
+      evidenceList.add('Tâche sélectionnée : "${bestTask.title}"');
+      if (bestTask.linkedGoalId != null) {
+        evidenceList.add('Directement alignée avec un Objectif de Vie actif');
+      }
+
+      final taskAction = IntelligentAction(
+        actionId: 'task_start_${bestTask.id}',
+        actionType: IntelligentActionType.startTask,
+        targetType: 'task',
+        targetId: bestTask.id,
+        priority: 80,
+        reason: 'Exécuter la tâche la plus alignée avec tes cibles actuelles',
+        createdAt: DateTime.now(),
+      );
+
+      // Alternatives
+      final alternatives = snapshot.openTasks
+          .where((t) => t.id != bestTask.id)
+          .take(2)
+          .map((alt) => IntelligentAction(
+                actionId: 'task_start_${alt.id}',
+                actionType: IntelligentActionType.startTask,
+                targetType: 'task',
+                targetId: alt.id,
+                priority: 60,
+                reason: 'Option alternative : ${alt.title}',
+                createdAt: DateTime.now(),
+              ))
+          .toList();
+
+      return AdaptiveDecision(
+        decisionType: 'SELECT_TASK',
+        selectedActionId: taskAction.actionId,
+        primaryAction: taskAction,
+        reason: 'Situation optimale : action alignée sur tes objectifs et ton niveau d\'énergie',
+        priorityLevel: PriorityLevel.medium,
+        confidence: 0.88,
+        expectedBenefit: 'Avancement direct sur un jalon clé et gain d\'XP (+15 XP)',
+        frictionTarget: 'NO_FRICTION',
+        evidence: evidenceList,
+        alternatives: alternatives,
+        isExecutable: true,
+        generatedAt: DateTime.now(),
+      );
+    }
+
+    // Case 5: No Action Required
+    return AdaptiveDecision(
+      decisionType: 'NO_ACTION',
+      selectedActionId: null,
+      primaryAction: null,
+      reason: 'Situation parfaitement stable : aucune friction active ou action requise',
+      priorityLevel: PriorityLevel.low,
+      confidence: 0.70,
+      expectedBenefit: 'Maintien de l\'état de sérénité et de flow',
+      frictionTarget: 'NO_FRICTION',
+      evidence: const ['Aucune tâche urgente ou alerte de capacité active'],
+      isExecutable: false,
+      generatedAt: DateTime.now(),
+    );
+  }
+}
+
 /// Structured Representation of Future Anticipations & Risk Signals (Generation 2/4).
 class AnticipationModel {
   final String type; // 'RISK', 'OPPORTUNITY', 'CHANGE', 'CONSTRAINT', 'NO_ANTICIPATION'

@@ -17,8 +17,15 @@ class RecommendNode extends IntelligenceNode {
         snapshot.goals.isNotEmpty;
   }
 
+  AdaptiveDecision evaluateDecision(ContextSnapshot snapshot) {
+    final situation = SituationModel.fromSnapshot(snapshot);
+    final anticipation = AnticipationModel.evaluate(snapshot, situation);
+    return AdaptiveDecision.evaluate(snapshot, situation, anticipation);
+  }
+
   @override
   IntelligenceResult execute(ContextSnapshot snapshot) {
+    final decision = evaluateDecision(snapshot);
     final openTasks = snapshot.openTasks;
     final observations = <String>[];
     final actions = <IntelligentAction>[];
@@ -89,6 +96,10 @@ class RecommendNode extends IntelligenceNode {
         'recommendedTaskId': bestTask.id,
         'taskTitle': bestTask.title,
         'mentalBattery': battery,
+        'decisionType': decision.decisionType,
+        'decisionReason': decision.reason,
+        'expectedBenefit': decision.expectedBenefit,
+        'frictionTarget': decision.frictionTarget,
       },
     );
   }
