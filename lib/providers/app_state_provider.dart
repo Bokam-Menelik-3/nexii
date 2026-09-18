@@ -4,36 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../core/services/firebase_service.dart';
-import '../domains/adaptive_state/mental_battery_domain_state.dart';
-import '../domains/agenda/agenda_domain_state.dart';
-import '../domains/aura/aura_domain_state.dart';
-import '../domains/aura/aura_result.dart';
-import '../domains/check_in/check_in_domain_state.dart';
-import '../domains/focus/focus_domain_state.dart';
-import '../domains/tasks/task_domain_state.dart';
-import '../domains/tasks/task_item.dart';
 import '../intelligence/models/intelligence_models.dart';
 import '../intelligence/services/intelligence_service.dart';
 
 class AppStateProvider with ChangeNotifier {
-  // Domain States
-  final AgendaDomainState _agendaDomainState = AgendaDomainState();
-  AgendaDomainState get agendaDomainState => _agendaDomainState;
-
-  final TaskDomainState _taskDomainState = TaskDomainState();
-  TaskDomainState get taskDomainState => _taskDomainState;
-
-  final FocusDomainState _focusDomainState = FocusDomainState();
-  FocusDomainState get focusDomainState => _focusDomainState;
-
-  final CheckInDomainState _checkInDomainState = CheckInDomainState();
-  CheckInDomainState get checkInDomainState => _checkInDomainState;
-
-  final MentalBatteryDomainState _mentalBatteryDomainState = MentalBatteryDomainState();
-  MentalBatteryDomainState get mentalBatteryDomainState => _mentalBatteryDomainState;
-
-  final AuraDomainState _auraDomainState = AuraDomainState();
-  AuraDomainState get auraDomainState => _auraDomainState;
   final FirebaseService _firebaseService = FirebaseService();
   bool _isSyncing = false;
   bool _isDisposed = false;
@@ -92,15 +66,15 @@ class AppStateProvider with ChangeNotifier {
         isAnonymous: userUid == null || userUid!.isEmpty,
         locale: _currentLocale.languageCode,
         onboardingComplete: _isOnboardingComplete,
-        tasks: _taskDomainState.tasksAsMaps,
-        agendaEvents: _agendaDomainState.eventsAsMaps,
+        tasks: List<Map<String, dynamic>>.from(_tasks),
+        agendaEvents: List<Map<String, dynamic>>.from(_agendaEvents),
         goals: List<Map<String, dynamic>>.from(_goals),
         missions: List<Map<String, dynamic>>.from(_missions),
         xp: _xp,
         level: _level,
         streak: _streak,
         disciplineScore: disciplineScore,
-        auraScore: auraScore,
+        auraScore: _mentalBattery + (_recoveryIndex ~/ 2),
         currentMood: _dailyMood.toString(),
         dailyMood: _dailyMood,
         dailyEnergy: _dailyEnergy,
@@ -181,19 +155,21 @@ class AppStateProvider with ChangeNotifier {
   int get streakDays => _streak;
   bool get isDayValidated => _isDayValidated;
 
-  // Dynamic Focus States - Delegated to FocusDomainState
-  int get focusMinutesTotal => _focusDomainState.totalFocusMinutes;
-  int get _focusMinutesTotal => _focusDomainState.totalFocusMinutes;
-  String get selectedSound => _focusDomainState.selectedSound;
+  // Dynamic Focus States
+  int _focusMinutesTotal = 0;
+  String _selectedSound = 'Pluie'; // Rain
+
+  int get focusMinutesTotal => _focusMinutesTotal;
+  String get selectedSound => _selectedSound;
 
   void setSound(String sound) {
-    _focusDomainState.setSelectedSound(sound);
+    _selectedSound = sound;
     _syncToFirebase();
     notifyListeners();
   }
 
   void addFocusMinutes(int mins) {
-    _focusDomainState.recordSession(mins);
+    _focusMinutesTotal += mins;
     _xp += mins * 2;
     if (_xp >= 100 * _level) {
       _xp -= 100 * _level;
@@ -203,9 +179,10 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Tasks State - Delegated to TaskDomainState
-  List<Map<String, dynamic>> get tasks => _taskDomainState.tasksAsMaps;
-  List<Map<String, dynamic>> get _tasks => _taskDomainState.tasksAsMaps;
+  // Tasks State
+  final List<Map<String, dynamic>> _tasks = [];
+
+  List<Map<String, dynamic>> get tasks => _tasks;
 
   // Notifications State
   final List<Map<String, dynamic>> _notifications = [];
@@ -373,19 +350,21 @@ class AppStateProvider with ChangeNotifier {
     }
   }
 
-  // --- Energy Engine & Mental Battery - Delegated to MentalBatteryDomainState ---
-  int get mentalBattery => _mentalBatteryDomainState.mentalBattery;
-  int get _mentalBattery => _mentalBatteryDomainState.mentalBattery;
-  int get cognitiveFatigue => _mentalBatteryDomainState.cognitiveFatigue;
-  int get _cognitiveFatigue => _mentalBatteryDomainState.cognitiveFatigue;
-  int get emotionalLoad => _mentalBatteryDomainState.emotionalLoad;
-  int get recoveryIndex => _mentalBatteryDomainState.recoveryIndex;
-  int get _recoveryIndex => _mentalBatteryDomainState.recoveryIndex;
+  // --- Energy Engine & Mental Battery ---
+  int _mentalBattery = 82; // 0 to 100
+  int _cognitiveFatigue = 28; // 0 to 100
+  int _emotionalLoad = 18; // 0 to 100
+  int _recoveryIndex = 88; // 0 to 100
+
+  int get mentalBattery => _mentalBattery;
+  int get cognitiveFatigue => _cognitiveFatigue;
+  int get emotionalLoad => _emotionalLoad;
+  int get recoveryIndex => _recoveryIndex;
 
   void updateMentalBattery(int change, {String reason = ''}) {
-    _mentalBatteryDomainState.updateBattery(change);
-    if (_mentalBatteryDomainState.mentalBattery < 30 && !_mentalBatteryDomainState.isCrisisMode) {
-      _mentalBatteryDomainState.setCrisisMode(true, adjustBattery: false);
+    _mentalBattery = (_mentalBattery + change).clamp(0, 100);
+    if (_mentalBattery < 30 && !_isCrisisMode) {
+      _isCrisisMode = true;
       addNotification(
           "Mode Crise Déclenché 🛡️",
           "L'IA a détecté une baisse importante de ta batterie mentale (<30%). Le planning est allégé !",
@@ -1193,27 +1172,137 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // --- ✨ NEXII AURA SCORE ENGINE (0–100) - Delegated to AuraDomainState ---
-  AuraResult get currentAuraResult => _auraDomainState.computeAura(
-        tasks: _tasks,
-        livingGoals: _livingGoals,
-        focusMinutesTotal: _focusMinutesTotal,
-        dailySleep: _dailySleep,
-        selectedMood: _selectedMood,
-        streak: _streak,
-        cognitiveFatigue: _cognitiveFatigue,
-      );
+  // --- ✨ NEXII AURA SCORE ENGINE (0–100) ---
+  double get auraP {
+    final completed = _tasks.where((t) => t['isCompleted'] == true).length;
+    final total = _tasks.isEmpty ? 1 : _tasks.length;
+    final double tc = (completed / total) * 100;
 
-  double get auraP => _auraDomainState.computeAuraP(_tasks, _livingGoals);
-  double get auraF => _auraDomainState.computeAuraF(_focusMinutesTotal);
-  double get auraE => _auraDomainState.computeAuraE(_dailySleep, _selectedMood);
-  double get auraR => _auraDomainState.computeAuraR(_streak);
-  double get auraG => _auraDomainState.computeAuraG();
-  double get auraW => _auraDomainState.computeAuraW(_cognitiveFatigue);
+    double opSum = 0;
+    if (_livingGoals.isNotEmpty) {
+      for (var g in _livingGoals) {
+        final prog =
+            (g['progress'] is num) ? (g['progress'] as num).toDouble() : 0.7;
+        opSum += prog * 100;
+      }
+      opSum /= _livingGoals.length;
+    } else {
+      opSum = 72.0;
+    }
+    const double m = 65.0; // Milestones accomplishment
+    return (tc * 0.5) + (opSum * 0.3) + (m * 0.2);
+  }
 
-  int get auraScore => currentAuraResult.score;
+  double get auraF {
+    final double hf = (_focusMinutesTotal / 60.0 * 25.0).clamp(0.0, 100.0);
+    const double c = 82.0; // Quality of focus sessions
+    const double d = 78.0; // Distraction reduction
+    return (hf * 0.5) + (c * 0.3) + (d * 0.2);
+  }
 
-  Map<String, String> get auraLevelInfo => currentAuraResult.toLevelInfoMap();
+  double get auraE {
+    final double s = (_dailySleep > 0 ? _dailySleep * 10.0 : 80.0);
+    const double rc = 85.0; // Active recovery
+    double mh = 80.0;
+    switch (_selectedMood) {
+      case 'Stressé':
+        mh = 40.0;
+        break;
+      case 'Neutre':
+        mh = 60.0;
+        break;
+      case 'Bien':
+        mh = 80.0;
+        break;
+      case 'Inspiré':
+        mh = 95.0;
+        break;
+      case 'Serein':
+        mh = 100.0;
+        break;
+    }
+    return (s * 0.35) + (rc * 0.35) + (mh * 0.30);
+  }
+
+  double get auraR {
+    final double streakScore = (_streak * 10.0).clamp(0.0, 100.0);
+    const double habitsScore = 80.0;
+    return (streakScore * 0.6) + (habitsScore * 0.4);
+  }
+
+  double get auraG {
+    const double pr = 82.0; // Estimation precision
+    const double cl = 88.0; // Goal clarity
+    return (pr * 0.5) + (cl * 0.5);
+  }
+
+  double get auraW {
+    final double stressInversed = (100.0 - _cognitiveFatigue).clamp(0.0, 100.0);
+    const double emotion = 82.0;
+    const double balance = 80.0;
+    return (stressInversed * 0.4) + (emotion * 0.3) + (balance * 0.3);
+  }
+
+  int get auraScore {
+    final double raw = (auraP * 0.25) +
+        (auraF * 0.20) +
+        (auraE * 0.20) +
+        (auraR * 0.15) +
+        (auraG * 0.10) +
+        (auraW * 0.10);
+    return raw.round().clamp(0, 100);
+  }
+
+  Map<String, String> get auraLevelInfo {
+    final score = auraScore;
+    if (score <= 20) {
+      return {
+        'level': '0–20',
+        'icon': '🌑',
+        'title': 'Recharge nécessaire',
+        'action': 'Nexii réduit la pression et propose des petites victoires.',
+      };
+    } else if (score <= 40) {
+      return {
+        'level': '21–40',
+        'icon': '🌘',
+        'title': 'Reconstruction',
+        'action':
+            'Nexii allège le planning et propose des objectifs très accessibles.',
+      };
+    } else if (score <= 60) {
+      return {
+        'level': '41–60',
+        'icon': '🌗',
+        'title': 'Progression',
+        'action':
+            'Nexii maintient un rythme équilibré et consolide tes habitudes.',
+      };
+    } else if (score <= 75) {
+      return {
+        'level': '61–75',
+        'icon': '🌕',
+        'title': 'Équilibre',
+        'action': 'Excellente harmonie entre effort, focus et bien-être.',
+      };
+    } else if (score <= 90) {
+      return {
+        'level': '76–90',
+        'icon': '✨',
+        'title': 'Haute Aura',
+        'action':
+            'Nexii augmente progressivement les défis et optimise ta productivité.',
+      };
+    } else {
+      return {
+        'level': '91–100',
+        'icon': '🌟',
+        'title': 'Aura Légendaire',
+        'action':
+            'Nexii active le mode "Peak Performance" pour libérer ton plein potentiel.',
+      };
+    }
+  }
 
   // --- 🎚️ NEXII AUTONOMY LEVEL (1 to 4) ---
   int _autonomyLevel = 2; // Default 2: Assistant
@@ -1685,34 +1774,31 @@ class AppStateProvider with ChangeNotifier {
   }
 
   // Daily Check-in State
-  // --- Check-In State - Delegated to CheckInDomainState ---
-  int get dailyMood => _checkInDomainState.dailyMood;
-  int get _dailyMood => _checkInDomainState.dailyMood;
-  int get dailyEnergy => _checkInDomainState.dailyEnergy;
-  int get _dailyEnergy => _checkInDomainState.dailyEnergy;
-  int get dailyMotivation => _checkInDomainState.dailyMotivation;
-  int get _dailyMotivation => _checkInDomainState.dailyMotivation;
-  int get dailyStress => _checkInDomainState.dailyStress;
-  int get _dailyStress => _checkInDomainState.dailyStress;
-  int get dailySleep => _checkInDomainState.dailySleep;
-  int get _dailySleep => _checkInDomainState.dailySleep;
-  bool get hasCheckedInToday => _checkInDomainState.hasCheckedInToday;
-  bool get _hasCheckedInToday => _checkInDomainState.hasCheckedInToday;
-  String get lastManualCheckInDate => _checkInDomainState.lastManualCheckInDate;
-  String get _lastManualCheckInDate => _checkInDomainState.lastManualCheckInDate;
+  int _dailyMood = 3; // 1-5
+  int _dailyEnergy = 3; // 1-5
+  int _dailyMotivation = 3; // 1-5
+  int _dailyStress = 3; // 1-5
+  int _dailySleep = 3; // 1-5
+  bool _hasCheckedInToday = false;
+  String _lastManualCheckInDate = '';
+
+  int get dailyMood => _dailyMood;
+  int get dailyEnergy => _dailyEnergy;
+  int get dailyMotivation => _dailyMotivation;
+  int get dailyStress => _dailyStress;
+  int get dailySleep => _dailySleep;
+  bool get hasCheckedInToday => _hasCheckedInToday;
+  String get lastManualCheckInDate => _lastManualCheckInDate;
 
   void submitDailyCheckIn(
       int mood, int energy, int motivation, int stress, int sleep) {
-    _checkInDomainState.submitCheckIn(
-      mood: mood,
-      energy: energy,
-      motivation: motivation,
-      stress: stress,
-      sleep: sleep,
-    );
-    // Recalculate mental battery recovery on check-in
-    final batteryBonus = ((energy + motivation + (6 - stress)) / 15.0 * 20.0).round();
-    _mentalBatteryDomainState.updateBattery(batteryBonus);
+    _dailyMood = mood;
+    _dailyEnergy = energy;
+    _dailyMotivation = motivation;
+    _dailyStress = stress;
+    _dailySleep = sleep;
+    _hasCheckedInToday = true;
+    _lastManualCheckInDate = DateTime.now().toIso8601String().split('T')[0];
     _xp += 30;
     if (_xp >= 100 * _level) {
       _xp -= 100 * _level;
@@ -1793,8 +1879,10 @@ class AppStateProvider with ChangeNotifier {
   bool _isCoachTyping = false;
   bool get isCoachTyping => _isCoachTyping;
 
-  // Agenda State - Delegated to AgendaDomainState for modular isolation
-  List<Map<String, dynamic>> get agendaEvents => _agendaDomainState.eventsAsMaps;
+  // Agenda State
+  final List<Map<String, dynamic>> _agendaEvents = [];
+
+  List<Map<String, dynamic>> get agendaEvents => _agendaEvents;
 
   Timer? _realtimeSyncTimer;
   DateTime? _lastFirestoreSync;
@@ -1812,20 +1900,24 @@ class AppStateProvider with ChangeNotifier {
     _level = 1;
     _streak = 0;
     _isDayValidated = false;
-    _focusDomainState.clear();
+    _focusMinutesTotal = 0;
     _totalBudget = 0.0;
     _isCrisisMode = false;
-    _checkInDomainState.clear();
-    _mentalBatteryDomainState.clear();
-    _taskDomainState.clear();
-    _focusDomainState.clear();
+    _dailyMood = 3;
+    _dailyEnergy = 3;
+    _dailyMotivation = 3;
+    _dailyStress = 3;
+    _dailySleep = 3;
+    _hasCheckedInToday = false;
+    _lastManualCheckInDate = '';
+    _tasks.clear();
     _goals.clear();
     _livingGoals.clear();
     _isPulseActive = false;
     _isPulseApplied = false;
     _missions.clear();
     _notifications.clear();
-    _agendaDomainState.clear();
+    _agendaEvents.clear();
     _transactions.clear();
     _communityPosts.clear();
     _messages.clear();
@@ -1877,8 +1969,9 @@ class AppStateProvider with ChangeNotifier {
           final cloudTasks = (cloudData['tasks'] as List)
               .map((t) => Map<String, dynamic>.from(t))
               .toList();
-          if (jsonEncode(cloudTasks) != jsonEncode(_taskDomainState.tasksAsMaps)) {
-            _taskDomainState.setTasks(cloudTasks);
+          if (jsonEncode(cloudTasks) != jsonEncode(_tasks)) {
+            _tasks.clear();
+            _tasks.addAll(cloudTasks);
             changed = true;
           }
         }
@@ -1938,13 +2031,13 @@ class AppStateProvider with ChangeNotifier {
       if (cloudData.containsKey('totalBudget'))
         _totalBudget = (cloudData['totalBudget'] as num).toDouble();
       if (cloudData.containsKey('focusMinutesTotal'))
-        _focusDomainState.setTotalMinutes(cloudData['focusMinutesTotal']);
+        _focusMinutesTotal = cloudData['focusMinutesTotal'];
 
       if (cloudData.containsKey('tasks') &&
           (cloudData['tasks'] as List).isNotEmpty) {
-        _taskDomainState.setTasks((cloudData['tasks'] as List)
-            .map((t) => Map<String, dynamic>.from(t))
-            .toList());
+        _tasks.clear();
+        _tasks.addAll((cloudData['tasks'] as List)
+            .map((t) => Map<String, dynamic>.from(t)));
       }
       if (cloudData.containsKey('transactions')) {
         _transactions.clear();
@@ -1952,10 +2045,9 @@ class AppStateProvider with ChangeNotifier {
             .map((t) => Map<String, dynamic>.from(t)));
       }
       if (cloudData.containsKey('agendaEvents')) {
-        _agendaDomainState.setEvents(
-            (cloudData['agendaEvents'] as List)
-                .map((e) => Map<String, dynamic>.from(e))
-                .toList());
+        _agendaEvents.clear();
+        _agendaEvents.addAll((cloudData['agendaEvents'] as List)
+            .map((e) => Map<String, dynamic>.from(e)));
       }
       if (cloudData.containsKey('missions') &&
           (cloudData['missions'] as List).isNotEmpty) {
@@ -1990,20 +2082,25 @@ class AppStateProvider with ChangeNotifier {
       if (cloudData.containsKey('lang')) {
         _currentLocale = Locale(cloudData['lang']);
       }
-      _checkInDomainState.loadFromCloud(
-        mood: cloudData['checkInMood'] ?? 3,
-        energy: cloudData['checkInEnergy'] ?? 3,
-        motivation: cloudData['checkInMotivation'] ?? 3,
-        stress: cloudData['checkInStress'] ?? 3,
-        sleep: cloudData['checkInSleep'] ?? 3,
-        lastCheckInDate: cloudData['lastManualCheckInDate']?.toString() ?? '',
-      );
-      if (cloudData.containsKey('mentalBattery')) {
-        _mentalBatteryDomainState.setBattery((cloudData['mentalBattery'] as num).toInt());
+      final todayStr = DateTime.now().toIso8601String().split('T')[0];
+      if (cloudData.containsKey('lastManualCheckInDate')) {
+        _lastManualCheckInDate = cloudData['lastManualCheckInDate'] ?? '';
+        _hasCheckedInToday = _lastManualCheckInDate == todayStr;
       }
-      if (cloudData.containsKey('isCrisisMode')) {
-        _mentalBatteryDomainState.setCrisisMode(cloudData['isCrisisMode'] == true);
-      }
+      if (cloudData.containsKey('mentalBattery'))
+        _mentalBattery = cloudData['mentalBattery'];
+      if (cloudData.containsKey('isCrisisMode'))
+        _isCrisisMode = cloudData['isCrisisMode'] == true;
+      if (cloudData.containsKey('checkInMood'))
+        _dailyMood = cloudData['checkInMood'];
+      if (cloudData.containsKey('checkInEnergy'))
+        _dailyEnergy = cloudData['checkInEnergy'];
+      if (cloudData.containsKey('checkInMotivation'))
+        _dailyMotivation = cloudData['checkInMotivation'];
+      if (cloudData.containsKey('checkInStress'))
+        _dailyStress = cloudData['checkInStress'];
+      if (cloudData.containsKey('checkInSleep'))
+        _dailySleep = cloudData['checkInSleep'];
       _isOnboardingComplete = true;
       _lastFirestoreSync = DateTime.now();
       await loadCommunityPosts();
@@ -2073,7 +2170,7 @@ class AppStateProvider with ChangeNotifier {
       'transactions': _transactions,
       'totalBudget': _totalBudget,
       'missions': _missions,
-      'agendaEvents': _agendaDomainState.eventsAsMaps,
+      'agendaEvents': _agendaEvents,
       'goals': _goals,
       'livingGoals': _livingGoals,
       'communityPosts': _communityPosts,
@@ -2146,7 +2243,7 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Task Actions - Forwarded to TaskDomainState
+  // Task Actions
   void addTask(
     String title,
     String subtitle,
@@ -2159,20 +2256,22 @@ class AppStateProvider with ChangeNotifier {
     String linkedGoalId = '',
     List<Map<String, dynamic>>? subtasks,
   }) {
-    final newItem = TaskItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
-      subtitle: subtitle,
-      category: category,
-      priority: priority,
-      urgency: urgency,
-      difficulty: difficulty,
-      estimatedTimeMinutes: estimatedTime,
-      energyNeeded: energyNeeded,
-      linkedGoalId: linkedGoalId,
-      subtasks: subtasks ?? [],
-    );
-    _taskDomainState.addTask(newItem);
+    final newTaskId = DateTime.now().millisecondsSinceEpoch.toString();
+    final newTask = {
+      'id': newTaskId,
+      'title': title,
+      'subtitle': subtitle,
+      'category': category,
+      'isCompleted': false,
+      'priority': priority,
+      'urgency': urgency,
+      'difficulty': difficulty,
+      'estimatedTime': estimatedTime,
+      'energyNeeded': energyNeeded,
+      'linkedGoalId': linkedGoalId,
+      'subtasks': subtasks ?? [],
+    };
+    _tasks.add(newTask);
 
     // Update weekly tasks mission progress
     if (_missions.length > 2) {
@@ -2184,54 +2283,96 @@ class AppStateProvider with ChangeNotifier {
         }
       }
     }
-    _firebaseService.saveUserSubcollectionDocument("tasks", newItem.id, newItem.toMap());
+    _firebaseService.saveUserSubcollectionDocument("tasks", newTaskId, newTask);
     _syncToFirebase();
     notifyListeners();
   }
 
   void addSubTask(String taskId, String subtaskTitle) {
     if (subtaskTitle.trim().isEmpty) return;
-    _taskDomainState.addSubTask(taskId, subtaskTitle.trim());
-    final taskMap = _taskDomainState.tasksAsMaps.firstWhere((t) => t['id'] == taskId, orElse: () => {});
-    if (taskMap.isNotEmpty) {
-      _firebaseService.saveUserSubcollectionDocument("tasks", taskId, taskMap);
+    Map<String, dynamic>? targetTask;
+    for (var task in _tasks) {
+      if (task['id'] == taskId) {
+        final List subtasks = List.from(task['subtasks'] ?? []);
+        subtasks.add({
+          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+          'title': subtaskTitle.trim(),
+          'isCompleted': false,
+        });
+        task['subtasks'] = subtasks;
+        targetTask = task;
+        break;
+      }
+    }
+    if (targetTask != null) {
+      _firebaseService.saveUserSubcollectionDocument(
+          "tasks", taskId, targetTask);
     }
     _syncToFirebase();
     notifyListeners();
   }
 
   void toggleSubTask(String taskId, String subtaskId) {
-    _taskDomainState.toggleSubTask(taskId, subtaskId);
-    final taskMap = _taskDomainState.tasksAsMaps.firstWhere((t) => t['id'] == taskId, orElse: () => {});
-    if (taskMap.isNotEmpty) {
-      _firebaseService.saveUserSubcollectionDocument("tasks", taskId, taskMap);
+    Map<String, dynamic>? targetTask;
+    for (var task in _tasks) {
+      if (task['id'] == taskId) {
+        final List subtasks = List.from(task['subtasks'] ?? []);
+        for (var st in subtasks) {
+          if (st['id'] == subtaskId) {
+            st['isCompleted'] = !(st['isCompleted'] == true);
+            break;
+          }
+        }
+        task['subtasks'] = subtasks;
+        targetTask = task;
+        break;
+      }
+    }
+    if (targetTask != null) {
+      _firebaseService.saveUserSubcollectionDocument(
+          "tasks", taskId, targetTask);
     }
     _syncToFirebase();
     notifyListeners();
   }
 
   void deleteSubTask(String taskId, String subtaskId) {
-    _taskDomainState.deleteSubTask(taskId, subtaskId);
-    final taskMap = _taskDomainState.tasksAsMaps.firstWhere((t) => t['id'] == taskId, orElse: () => {});
-    if (taskMap.isNotEmpty) {
-      _firebaseService.saveUserSubcollectionDocument("tasks", taskId, taskMap);
+    Map<String, dynamic>? targetTask;
+    for (var task in _tasks) {
+      if (task['id'] == taskId) {
+        final List subtasks = List.from(task['subtasks'] ?? []);
+        subtasks.removeWhere((st) => st['id'] == subtaskId);
+        task['subtasks'] = subtasks;
+        targetTask = task;
+        break;
+      }
+    }
+    if (targetTask != null) {
+      _firebaseService.saveUserSubcollectionDocument(
+          "tasks", taskId, targetTask);
     }
     _syncToFirebase();
     notifyListeners();
   }
 
   void toggleTask(String id) {
-    _taskDomainState.toggleTask(id);
-    final taskMap = _taskDomainState.tasksAsMaps.firstWhere((t) => t['id'] == id, orElse: () => {});
-    if (taskMap.isNotEmpty) {
-      _firebaseService.saveUserSubcollectionDocument("tasks", id, taskMap);
+    Map<String, dynamic>? targetTask;
+    for (var task in _tasks) {
+      if (task['id'] == id) {
+        task['isCompleted'] = !task['isCompleted'];
+        targetTask = task;
+        break;
+      }
+    }
+    if (targetTask != null) {
+      _firebaseService.saveUserSubcollectionDocument("tasks", id, targetTask);
     }
     _syncToFirebase();
     notifyListeners();
   }
 
   void deleteTask(String id) {
-    _taskDomainState.deleteTask(id);
+    _tasks.removeWhere((t) => t['id'] == id);
     _firebaseService.deleteUserSubcollectionDocument("tasks", id);
     _syncToFirebase();
     notifyListeners();
@@ -2345,16 +2486,19 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Agenda Actions - Forwarded to AgendaDomainState & synchronized
+  // Agenda Actions
   void addAgendaEvent(String title, String time) {
-    _agendaDomainState.addEvent(title, time);
+    _agendaEvents.add({
+      'title': title,
+      'time': time,
+    });
     _syncToFirebase();
     notifyListeners();
   }
 
   void removeAgendaEvent(int index) {
-    if (index >= 0 && index < _agendaDomainState.count) {
-      _agendaDomainState.removeEventAt(index);
+    if (index >= 0 && index < _agendaEvents.length) {
+      _agendaEvents.removeAt(index);
       _syncToFirebase();
       notifyListeners();
     }
@@ -2568,9 +2712,44 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Aura percentage calculation - delegates to canonical 6-pillar auraScore
+  // Aura percentage calculation
   double get auraPercentage {
-    return auraScore.toDouble();
+    // Pillar 1: Objectifs (25 pts)
+    int goalsPillarScore = 20 + (_level > 2 ? 5 : 2);
+
+    // Pillar 2: Gestion des tâches (25 pts)
+    double tasksCompletedRatio = _tasks.isNotEmpty
+        ? (_tasks.where((tk) => tk['isCompleted'] == true).length /
+            _tasks.length)
+        : 0.5;
+    int tasksPillarScore = (tasksCompletedRatio * 25).round();
+
+    // Pillar 3: Focus (20 pts)
+    // Focus minutes can be high, normalize around 120 mins
+    int focusPillarScore =
+        ((_focusMinutesTotal / 120.0) * 20.0).round().clamp(0, 20);
+
+    // Pillar 4: Bien-être (25 pts)
+    int wellnessPillarScore = _hasCheckedInToday
+        ? (((_dailyMood +
+                        _dailyEnergy +
+                        _dailyMotivation +
+                        (6 - _dailyStress)) /
+                    20.0) *
+                25.0)
+            .round()
+        : 18;
+
+    // Pillar 5: Bonus (5 pts)
+    int bonusPillarScore = (_streak >= 5 ? 5 : _streak).clamp(0, 5);
+
+    double calculated = (goalsPillarScore +
+            tasksPillarScore +
+            focusPillarScore +
+            wellnessPillarScore +
+            bonusPillarScore)
+        .toDouble();
+    return calculated.clamp(10.0, 100.0);
   }
 
   String get auraLabel {
@@ -3038,6 +3217,7 @@ class AppStateProvider with ChangeNotifier {
           "Mode Examens actif : priorisation des révisions et protection de l'énergie.",
           "info");
     } else if (scenarioKey == 'overload_recovery') {
+      _cognitiveFatigue = 82;
       _isRecoveryMode = true;
       updateMentalBattery(25, reason: 'Simulation Surcharge & Burnout');
       addNotification(
@@ -3046,7 +3226,8 @@ class AppStateProvider with ChangeNotifier {
           "warning");
     } else if (scenarioKey == 'peak_performance') {
       _streak = 30;
-      _mentalBatteryDomainState.setBattery(98);
+      _mentalBattery = 98;
+      _cognitiveFatigue = 15;
       setAutonomyLevel(4);
       addNotification(
           "Scénario Peak Performance Activé 🌟",

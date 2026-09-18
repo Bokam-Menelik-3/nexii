@@ -20,13 +20,8 @@ class UnderstandNode extends IntelligenceNode {
         snapshot.dailySleep != null;
   }
 
-  SituationModel evaluateSituation(ContextSnapshot snapshot) {
-    return SituationModel.fromSnapshot(snapshot);
-  }
-
   @override
   IntelligenceResult execute(ContextSnapshot snapshot) {
-    final situation = evaluateSituation(snapshot);
     final openTaskCount = snapshot.openTasks.length;
     final taskCount = snapshot.tasks.length;
     final battery = snapshot.mentalBattery;
@@ -89,9 +84,6 @@ class UnderstandNode extends IntelligenceNode {
         'focusMinutes': focusMinutes,
         'dailyStress': stress,
         'dailySleep': sleep,
-        'capacityLevel': situation.capacityLevel,
-        'workloadLevel': situation.workloadLevel,
-        'currentFriction': situation.currentFriction,
       },
     );
   }

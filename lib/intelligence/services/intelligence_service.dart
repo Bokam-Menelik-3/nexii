@@ -33,7 +33,6 @@ class IntelligenceService {
 
   final ContextSnapshotBuilder snapshotBuilder;
   final N1DecisionEngine n1DecisionEngine;
-  final List<LearningEvent> _learningEvents = [];
   final ObserveNode observeNode;
   final UnderstandNode understandNode;
   final PulseNode pulseNode;
@@ -105,60 +104,6 @@ class IntelligenceService {
       riskFlags: riskFlags,
       riskLevel: riskLevel,
     );
-  }
-
-  SituationModel understandSituation(ContextSnapshot snapshot) {
-    return understandNode.evaluateSituation(snapshot);
-  }
-
-  AnticipationModel anticipateFuture(ContextSnapshot snapshot) {
-    return anticipateNode.evaluateAnticipation(snapshot);
-  }
-
-  AdaptiveDecision decideAdaptiveAction(
-    ContextSnapshot snapshot, {
-    PersonalLearningContext? learningContext,
-  }) {
-    final effectiveContext = learningContext ?? buildLearningContext(snapshot);
-    return recommendNode.evaluateDecision(snapshot, learningContext: effectiveContext);
-  }
-
-  void recordLearningEvent(LearningEvent event) {
-    _learningEvents.add(event);
-  }
-
-  List<LearningEvent> get learningEvents => List.unmodifiable(_learningEvents);
-
-  PersonalLearningContext buildLearningContext(ContextSnapshot snapshot) {
-    if (_learningEvents.isEmpty) {
-      return PersonalLearningContext.empty;
-    }
-
-    final situation = understandSituation(snapshot);
-    final pattern = 'capacity:${situation.capacityLevel}|friction:${situation.currentFriction}';
-
-    // Group events matching context pattern
-    final matchingEvents = _learningEvents.where((e) =>
-      e.capacityLevel == situation.capacityLevel && e.frictionType == situation.currentFriction
-    ).toList();
-
-    if (matchingEvents.isEmpty) {
-      return PersonalLearningContext.empty;
-    }
-
-    final actionTypes = matchingEvents.map((e) => e.actionType).toSet();
-    final learnings = <PersonalLearning>[];
-
-    for (final actionType in actionTypes) {
-      final eventsForAction = matchingEvents.where((e) => e.actionType == actionType).toList();
-      learnings.add(PersonalLearning.fromEvents(
-        actionType: actionType,
-        contextPattern: pattern,
-        events: eventsForAction,
-      ));
-    }
-
-    return PersonalLearningContext(learnings: learnings);
   }
 
   N1Summary evaluateN1(ContextSnapshot snapshot) {
