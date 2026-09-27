@@ -2173,34 +2173,38 @@ class AppStateProvider with ChangeNotifier {
   // Sync back to Firebase Firestore
   Future<void> _syncToFirebase() async {
     if (!_firebaseService.isLoggedIn) return;
-    await _firebaseService.saveUserData({
-      'name': _profileName,
-      'birthdate': _profileBirthdate,
-      'age': _profileAge,
-      'userXp': _xp,
-      'userLevel': _level,
-      'userStreak': _streak,
-      'tasks': _tasks,
-      'transactions': _transactions,
-      'totalBudget': _totalBudget,
-      'missions': _missions,
-      'agendaEvents': _agendaEvents,
-      'goals': _goals,
-      'livingGoals': _livingGoals,
-      'communityPosts': _communityPosts,
-      'notifications': _notifications,
-      'focusMinutesTotal': _focusMinutesTotal,
-      'mentalBattery': _mentalBattery,
-      'isCrisisMode': _isCrisisMode,
-      'isDarkMode': _themeMode == ThemeMode.dark,
-      'lang': _currentLocale.languageCode,
-      'lastManualCheckInDate': _lastManualCheckInDate,
-      'checkInMood': _dailyMood,
-      'checkInEnergy': _dailyEnergy,
-      'checkInMotivation': _dailyMotivation,
-      'checkInStress': _dailyStress,
-      'checkInSleep': _dailySleep,
-    });
+    try {
+      await _firebaseService.saveUserData({
+        'name': _profileName,
+        'birthdate': _profileBirthdate,
+        'age': _profileAge,
+        'userXp': _xp,
+        'userLevel': _level,
+        'userStreak': _streak,
+        'tasks': _tasks,
+        'transactions': _transactions,
+        'totalBudget': _totalBudget,
+        'missions': _missions,
+        'agendaEvents': _agendaEvents,
+        'goals': _goals,
+        'livingGoals': _livingGoals,
+        'communityPosts': _communityPosts,
+        'notifications': _notifications,
+        'focusMinutesTotal': _focusMinutesTotal,
+        'mentalBattery': _mentalBattery,
+        'isCrisisMode': _isCrisisMode,
+        'isDarkMode': _themeMode == ThemeMode.dark,
+        'lang': _currentLocale.languageCode,
+        'lastManualCheckInDate': _lastManualCheckInDate,
+        'checkInMood': _dailyMood,
+        'checkInEnergy': _dailyEnergy,
+        'checkInMotivation': _dailyMotivation,
+        'checkInStress': _dailyStress,
+        'checkInSleep': _dailySleep,
+      });
+    } catch (e) {
+      debugPrint("Error syncing user data to Firebase: $e");
+    }
   }
 
   // Global methods

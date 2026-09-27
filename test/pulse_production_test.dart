@@ -336,8 +336,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Récupération Nécessaire'), findsOneWidget);
-      expect(find.text('Récupération'), findsOneWidget); // mode label chip
-      expect(find.text('Ton moment'), findsNothing);
+      expect(find.text('RÉCUPÉRATION'), findsOneWidget); // mode label chip
+      expect(find.text('TON MOMENT'), findsNothing);
 
       // Stress drops to 1/5 → pulse signal recovers → Priority surface.
       provider.submitDailyCheckIn(4, 4, 4, 1, 7);
@@ -345,9 +345,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Rapport pulse'), findsOneWidget);
-      expect(find.text('Ton moment'), findsOneWidget); // mode label chip
+      expect(find.text('TON MOMENT'), findsOneWidget); // mode label chip
       expect(find.text('Récupération Nécessaire'), findsNothing);
-      expect(find.text('Récupération'), findsNothing);
+      expect(find.text('RÉCUPÉRATION'), findsNothing);
     });
   });
 

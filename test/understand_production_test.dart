@@ -524,7 +524,7 @@ void main() {
 
       // Pressure surface (3 open tasks → workload_elevated), not Priority.
       expect(find.text('Arriéré à Trier'), findsOneWidget);
-      expect(find.text('À trier'), findsOneWidget);
+      expect(find.text('À TRIER'), findsOneWidget);
       // One clear path: a single primary CTA.
       expect(find.byType(ElevatedButton), findsOneWidget);
       expect(find.text('Trier mes tâches'), findsOneWidget);

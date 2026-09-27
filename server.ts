@@ -44,8 +44,95 @@ function getGeminiClient(): GoogleGenAI | null {
   return aiClient;
 }
 
+// Simple Rate Limiting for AI endpoints with periodic cleanup
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap.entries()) {
+    if (now > entry.resetTime) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, 300000);
+
+function applyRateLimit(ip: string, limit = 30, windowMs = 60000): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+  if (entry.count >= limit) {
+    return false;
+  }
+  entry.count++;
+  return true;
+}
+
+// Authentication & Input Sanitization Middleware
+async function verifyAuthAndSanitizePayload(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers.authorization;
+
+  // In production or when Bearer token is provided, verify against Firebase Identity Toolkit
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    const apiKey = process.env.FIREBASE_API_KEY || "AIzaSyA6MWlv5N1FspAMQdrbyYVCLI6GE1JZ13g";
+    try {
+      const verifyRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken: token }),
+        }
+      );
+      if (!verifyRes.ok) {
+        return res.status(401).json({ error: "Unauthorized: Invalid or expired auth token." });
+      }
+      const data = await verifyRes.json() as any;
+      if (!data.users || data.users.length === 0) {
+        return res.status(401).json({ error: "Unauthorized: User not found." });
+      }
+      (req as any).authenticatedUser = data.users[0];
+    } catch (err) {
+      console.error("Token verification failed:", err);
+      return res.status(401).json({ error: "Unauthorized: Token verification failed." });
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    return res.status(401).json({ error: "Unauthorized: Authorization header required." });
+  }
+
+  // Payload Sanitization
+  if (req.body) {
+    if (typeof req.body.userMessage === "string") {
+      req.body.userMessage = req.body.userMessage.substring(0, 1000).replace(/<[^>]*>?/gm, "");
+    }
+    if (typeof req.body.nexiiState === "number") {
+      req.body.nexiiState = Math.max(0, Math.min(100, req.body.nexiiState));
+    }
+  }
+
+  next();
+}
+
+// Timeout wrapper for Gemini API calls
+function withTimeout<T>(promise: Promise<T>, timeoutMs = 10000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini API request timed out")), timeoutMs)
+    ),
+  ]);
+}
+
 // API Routes
-app.post("/api/coach", async (req, res) => {
+app.post("/api/coach", verifyAuthAndSanitizePayload, async (req, res) => {
+  const clientIp = req.ip || req.socket.remoteAddress || "unknown";
+  if (!applyRateLimit(clientIp)) {
+    return res.status(429).json({ error: "Rate limit exceeded. Please wait a moment." });
+  }
+
   const { 
     userMessage, 
     nexiiState, 
@@ -130,10 +217,13 @@ app.post("/api/coach", async (req, res) => {
       Message de l'utilisateur : "${userMessage}"
     `;
 
-    const response = await client.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-    });
+    const response = await withTimeout(
+      client.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+      }),
+      10000
+    );
 
     const reply = response.text || getLocalHeuristicResponse(userMessage, nexiiState, budgetProgress, completedTasksCount, totalTasksCount, contextMood, userAge);
     return res.json({ text: reply, provider: "gemini" });
@@ -147,7 +237,12 @@ app.post("/api/coach", async (req, res) => {
 });
 
 // API Route for AI task recommendations based on user's current states
-app.post("/api/tasks/generate", async (req, res) => {
+app.post("/api/tasks/generate", verifyAuthAndSanitizePayload, async (req, res) => {
+  const clientIp = req.ip || req.socket.remoteAddress || "unknown";
+  if (!applyRateLimit(clientIp)) {
+    return res.status(429).json({ error: "Rate limit exceeded. Please wait a moment." });
+  }
+
   const { nexiiState, mood, lang, userAge } = req.body;
 
   const client = getGeminiClient();
@@ -194,13 +289,16 @@ app.post("/api/tasks/generate", async (req, res) => {
       ]
     `;
 
-    const response = await client.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      }
-    });
+    const response = await withTimeout(
+      client.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        },
+      }),
+      10000
+    );
 
     const text = response.text;
     if (text) {
