@@ -73,31 +73,37 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           onTap: (index) {
             state.setTabIndex(index);
           },
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Aujourd\'hui',
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home),
+              label: state.currentLocale.languageCode == 'en'
+                  ? 'Today'
+                  : (state.currentLocale.languageCode == 'es' ? 'Hoy' : 'Aujourd\'hui'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.flag_outlined),
-              activeIcon: Icon(Icons.flag),
-              label: 'Objectifs',
+              icon: const Icon(Icons.check_circle_outline),
+              activeIcon: const Icon(Icons.check_circle),
+              label: state.currentLocale.languageCode == 'en'
+                  ? 'Tasks'
+                  : (state.currentLocale.languageCode == 'es' ? 'Tareas' : 'Tâches'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.timer_outlined),
-              activeIcon: Icon(Icons.timer),
+              icon: const Icon(Icons.timer_outlined),
+              activeIcon: const Icon(Icons.timer),
               label: 'Focus',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.trending_up_outlined),
-              activeIcon: Icon(Icons.trending_up),
-              label: 'Progression',
+              icon: const Icon(Icons.trending_up_outlined),
+              activeIcon: const Icon(Icons.trending_up),
+              label: state.currentLocale.languageCode == 'en'
+                  ? 'Progress'
+                  : (state.currentLocale.languageCode == 'es' ? 'Progresión' : 'Progression'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.auto_awesome_outlined),
-              activeIcon: Icon(Icons.auto_awesome),
-              label: 'Nexii',
+              icon: const Icon(Icons.auto_awesome_outlined),
+              activeIcon: const Icon(Icons.auto_awesome),
+              label: 'Coach',
             ),
           ],
         ),

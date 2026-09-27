@@ -20,9 +20,19 @@ class _ProgressionScreenState extends State<ProgressionScreen>
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
+    );
     _glowAnim =
         CurvedAnimation(parent: _glowController, curve: Curves.easeInOut);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      if (_glowController.isAnimating) _glowController.stop();
+    } else {
+      if (!_glowController.isAnimating) _glowController.repeat(reverse: true);
+    }
   }
 
   @override

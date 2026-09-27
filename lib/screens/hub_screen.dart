@@ -37,12 +37,38 @@ class HubScreen extends StatelessWidget {
     final name    = state.profileName.isNotEmpty ? state.profileName : null;
 
     // ── Destinations tab (indices bottom-nav existants 0-4) ──────────────────
+    final lang = state.currentLocale.languageCode;
     final tabDests = <_Dest>[
-      _Dest(icon: Icons.home_outlined,         label: "Aujourd'hui",  color: _blue,   onTap: () => state.setTabIndex(0)),
-      _Dest(icon: Icons.flag_outlined,          label: 'Objectifs',    color: _green,  onTap: () => state.setTabIndex(1)),
-      _Dest(icon: Icons.timer_outlined,         label: 'Focus',        color: _purple, onTap: () => state.setTabIndex(2)),
-      _Dest(icon: Icons.trending_up_outlined,   label: 'Progression',  color: _amber,  onTap: () => state.setTabIndex(3)),
-      _Dest(icon: Icons.auto_awesome_outlined,  label: 'Nexii IA',    color: _indigo, onTap: () => state.setTabIndex(4)),
+      _Dest(
+        icon: Icons.home_outlined,
+        label: lang == 'en' ? "Today" : (lang == 'es' ? "Hoy" : "Aujourd'hui"),
+        color: _blue,
+        onTap: () => state.setTabIndex(0),
+      ),
+      _Dest(
+        icon: Icons.check_circle_outline,
+        label: lang == 'en' ? "Tasks" : (lang == 'es' ? "Tareas" : "Tâches"),
+        color: _green,
+        onTap: () => state.setTabIndex(1),
+      ),
+      _Dest(
+        icon: Icons.timer_outlined,
+        label: "Focus",
+        color: _purple,
+        onTap: () => state.setTabIndex(2),
+      ),
+      _Dest(
+        icon: Icons.trending_up_outlined,
+        label: lang == 'en' ? "Progress" : (lang == 'es' ? "Progresión" : "Progression"),
+        color: _amber,
+        onTap: () => state.setTabIndex(3),
+      ),
+      _Dest(
+        icon: Icons.auto_awesome_outlined,
+        label: "Coach",
+        color: _indigo,
+        onTap: () => state.setTabIndex(4),
+      ),
     ];
 
     // ── Destinations push (écrans hors bottom-nav) ────────────────────────────
