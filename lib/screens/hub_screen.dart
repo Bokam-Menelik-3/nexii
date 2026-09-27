@@ -211,44 +211,48 @@ class _DestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: dest.onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.dividerColor),
-          boxShadow: [
-            BoxShadow(
-              color: dest.color.withValues(alpha: isDark ? 0.13 : 0.07),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: dest.color.withValues(alpha: isDark ? 0.18 : 0.1),
-                shape: BoxShape.circle,
+    return Semantics(
+      button: true,
+      label: dest.label,
+      child: GestureDetector(
+        onTap: dest.onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: theme.dividerColor),
+            boxShadow: [
+              BoxShadow(
+                color: dest.color.withValues(alpha: isDark ? 0.13 : 0.07),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-              child: Icon(dest.icon, color: dest.color, size: 22),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                dest.label,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: dest.color.withValues(alpha: isDark ? 0.18 : 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(dest.icon, color: dest.color, size: 22),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  dest.label,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
