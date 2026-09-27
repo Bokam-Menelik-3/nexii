@@ -77,7 +77,10 @@ async function verifyAuthAndSanitizePayload(req: express.Request, res: express.R
   // In production or when Bearer token is provided, verify against Firebase Identity Toolkit
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split(" ")[1];
-    const apiKey = process.env.FIREBASE_API_KEY || "AIzaSyA6MWlv5N1FspAMQdrbyYVCLI6GE1JZ13g";
+    const apiKey = process.env.FIREBASE_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: "Server configuration error: FIREBASE_API_KEY is not set." });
+    }
     try {
       const verifyRes = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,

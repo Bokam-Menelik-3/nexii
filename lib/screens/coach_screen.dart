@@ -306,8 +306,12 @@ class _CoachScreenState extends State<CoachScreen> {
       state.sendCoachMessage(text);
       _chatController.clear();
       _scrollToBottom();
-      Future.delayed(const Duration(milliseconds: 120), _scrollToBottom);
-      Future.delayed(const Duration(milliseconds: 1000), _scrollToBottom);
+      Future.delayed(const Duration(milliseconds: 120), () {
+        if (mounted) _scrollToBottom();
+      });
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) _scrollToBottom();
+      });
     }
   }
 
