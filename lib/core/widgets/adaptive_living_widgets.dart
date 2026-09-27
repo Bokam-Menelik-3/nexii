@@ -142,11 +142,21 @@ class _AuraVisualWidgetState extends State<AuraVisualWidget>
     _controller = AnimationController(
       vsync: this,
       duration: NexiiMotion.auraBreathing,
-    )..repeat(reverse: true);
+    );
 
     _breathingAnimation = Tween<double>(begin: 0.9, end: 1.1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      if (_controller.isAnimating) _controller.stop();
+    } else {
+      if (!_controller.isAnimating) _controller.repeat(reverse: true);
+    }
   }
 
   @override

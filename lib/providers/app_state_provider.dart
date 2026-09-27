@@ -116,6 +116,45 @@ class AppStateProvider with ChangeNotifier {
   Locale get currentLocale => _currentLocale;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
+  String translate(String key) {
+    final lang = _currentLocale.languageCode;
+    const translations = {
+      'cancel_btn': {'fr': 'Annuler', 'en': 'Cancel', 'es': 'Cancelar'},
+      'onboarding_submit': {'fr': 'Valider', 'en': 'Submit', 'es': 'Enviar'},
+      'edit_profile_title': {'fr': 'Modifier le profil', 'en': 'Edit Profile', 'es': 'Editar Perfil'},
+      'onboarding_name_label': {'fr': 'Prénom / Pseudonyme', 'en': 'Name / Alias', 'es': 'Nombre / Apodo'},
+      'onboarding_birthdate_label': {'fr': 'Date de naissance', 'en': 'Birthdate', 'es': 'Fecha de nacimiento'},
+      'save_profile_btn': {'fr': 'Enregistrer', 'en': 'Save', 'es': 'Guardar'},
+      'profile_title': {'fr': 'Profil & Paramètres', 'en': 'Profile & Settings', 'es': 'Perfil y Ajustes'},
+      'joined_date': {'fr': 'Membre depuis', 'en': 'Member since', 'es': 'Miembro desde'},
+      'edit_profile_btn': {'fr': 'Éditer le profil', 'en': 'Edit profile', 'es': 'Editar perfil'},
+      'activity_streak': {'fr': 'Série active', 'en': 'Current streak', 'es': 'Racha activa'},
+      'streak_desc': {'fr': 'Jours consécutifs d\'engagement', 'en': 'Consecutive days active', 'es': 'Días consecutivos activo'},
+      'stats_title': {'fr': 'Statistiques', 'en': 'Statistics', 'es': 'Estadísticas'},
+      'device_options': {'fr': 'Préférences', 'en': 'Preferences', 'es': 'Preferencias'},
+      'settings_theme': {'fr': 'Thème de l\'application', 'en': 'App Theme', 'es': 'Tema de la aplicación'},
+      'settings_lang': {'fr': 'Langue', 'en': 'Language', 'es': 'Idioma'},
+      'add_task': {'fr': 'Ajouter une tâche', 'en': 'Add Task', 'es': 'Añadir Tarea'},
+      'placeholder_add_task': {'fr': 'Titre de la tâche…', 'en': 'Task title…', 'es': 'Título de la tarea…'},
+      'budget_title': {'fr': 'Finances & Budget', 'en': 'Finance & Budget', 'es': 'Finanzas y Presupuesto'},
+      'recent_trans': {'fr': 'Transactions récentes', 'en': 'Recent transactions', 'es': 'Transacciones recientes'},
+      'remain_budget': {'fr': 'Budget restant', 'en': 'Remaining budget', 'es': 'Presupuesto restante'},
+      'budget_total': {'fr': 'Budget total', 'en': 'Total budget', 'es': 'Presupuesto total'},
+      'spent_amount': {'fr': 'Dépenses', 'en': 'Expenses', 'es': 'Gastos'},
+      'financial_stress': {'fr': 'Indice de tension', 'en': 'Stress index', 'es': 'Índice de tensión'},
+      'coach_title': {'fr': 'Nexii Coach', 'en': 'Nexii Coach', 'es': 'Nexii Coach'},
+      'tab_missions': {'fr': 'Missions', 'en': 'Missions', 'es': 'Misiones'},
+      'reward_claimed': {'fr': 'Récompense récupérée', 'en': 'Reward claimed', 'es': 'Recompensa reclamada'},
+      'claim_xp': {'fr': 'Réclamer XP', 'en': 'Claim XP', 'es': 'Reclamar XP'},
+      'placeholder_chat': {'fr': 'Écrivez un message…', 'en': 'Type a message…', 'es': 'Escribe un mensaje…'},
+    };
+    final keyMap = translations[key];
+    if (keyMap != null) {
+      return keyMap[lang] ?? keyMap['fr'] ?? key;
+    }
+    return key;
+  }
+
   // Profile / Onboarding State
   bool _isOnboardingComplete = false;
   String _profileName = '';
@@ -1262,6 +1301,10 @@ class AppStateProvider with ChangeNotifier {
     return raw.round().clamp(0, 100);
   }
 
+  double get auraPercentage => auraScore.toDouble();
+
+  String get auraLabel => auraLevelInfo['title'] ?? 'Équilibre';
+
   Map<String, String> get auraLevelInfo {
     final score = auraScore;
     if (score <= 20) {
@@ -1380,6 +1423,11 @@ class AppStateProvider with ChangeNotifier {
     addNotification(
         "Identité Nexii mise à jour 🌱", "Nouveau profil : $archetype", "info");
     _syncToFirebase();
+    notifyListeners();
+  }
+
+  void signOut() {
+    _firebaseService.signOut();
     notifyListeners();
   }
 
