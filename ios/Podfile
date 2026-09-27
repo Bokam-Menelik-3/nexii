@@ -1,0 +1,28 @@
+# Set platform to iOS 13.0 or higher
+platform :ios, '13.0'
+
+# Disable CocoaPods analytics
+ENV['COCOAPODS_DISABLE_STATS'] = '1'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :profile,
+  'Release' => :release,
+}
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  # The flutter_install_all_ios_pods command is automatically run by the Flutter tool
+  # during "flutter build ios" or "flutter run".
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+    end
+  end
+end

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Theme utilisé pendant le démarrage de Flutter -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+
+        <!-- Couleur de fond pendant le chargement -->
+        <item name="android:windowBackground">@drawable/launch_background</item>
+
+        <!-- Android 12+ Splash Screen -->
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/launch_icon</item>
+
+    </style>
+
+
+    <!-- Theme après le chargement du premier écran Flutter -->
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+
+        <item name="android:windowBackground">@android:color/white</item>
+
+    </style>
+
+</resources>

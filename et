@@ -1,0 +1,156 @@
+ .env.example                                                                |     4 [32m+[m
+ .gitattributes                                                              |    11 [32m+[m
+ .gitignore                                                                  |    22 [32m+[m
+ NEXII_CONTEXT.md                                                            |   661 [32m++++++[m
+ README.md                                                                   |   109 [32m+[m
+ android/.gradle/8.10.2/checksums/checksums.lock                             |   Bin [31m0[m -> [32m17[m bytes
+ android/.gradle/8.10.2/dependencies-accessors/gc.properties                 |     0
+ android/.gradle/8.10.2/executionHistory/executionHistory.bin                |   Bin [31m0[m -> [32m1883488[m bytes
+ android/.gradle/8.10.2/executionHistory/executionHistory.lock               |   Bin [31m0[m -> [32m17[m bytes
+ android/.gradle/8.10.2/fileChanges/last-build.bin                           |   Bin [31m0[m -> [32m1[m bytes
+ android/.gradle/8.10.2/fileHashes/fileHashes.bin                            |   Bin [31m0[m -> [32m266069[m bytes
+ android/.gradle/8.10.2/fileHashes/fileHashes.lock                           |   Bin [31m0[m -> [32m17[m bytes
+ android/.gradle/8.10.2/fileHashes/resourceHashesCache.bin                   |   Bin [31m0[m -> [32m23087[m bytes
+ android/.gradle/8.10.2/gc.properties                                        |     0
+ android/.gradle/buildOutputCleanup/buildOutputCleanup.lock                  |   Bin [31m0[m -> [32m17[m bytes
+ android/.gradle/buildOutputCleanup/cache.properties                         |     2 [32m+[m
+ android/.gradle/buildOutputCleanup/outputFiles.bin                          |   Bin [31m0[m -> [32m58649[m bytes
+ android/.gradle/noVersion/buildLogic.lock                                   |   Bin [31m0[m -> [32m17[m bytes
+ android/.gradle/vcs-1/gc.properties                                         |     0
+ android/app/build.gradle                                                    |    75 [32m+[m
+ android/app/src/main/AndroidManifest.xml                                    |    28 [32m+[m
+ android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java |    34 [32m+[m
+ android/app/src/main/kotlin/com/example/nexii/MainActivity.kt               |     6 [32m+[m
+ android/app/src/main/res/drawable/launch_background.xml                     |     4 [32m+[m
+ android/app/src/main/res/drawable/launch_icon.xml                           |    12 [32m+[m
+ android/app/src/main/res/mipmap/ic_launcher.xml                             |    41 [32m+[m
+ android/app/src/main/res/values/colors.xml                                  |     4 [32m+[m
+ android/app/src/main/res/values/styles.xml                                  |    24 [32m+[m
+ android/build.gradle                                                        |    18 [32m+[m
+ android/gradle.properties                                                   |     7 [32m+[m
+ android/gradle/wrapper/gradle-wrapper.jar                                   |   Bin [31m0[m -> [32m53636[m bytes
+ android/gradle/wrapper/gradle-wrapper.properties                            |     5 [32m+[m
+ android/gradlew                                                             |   160 [32m++[m
+ android/gradlew.bat                                                         |    90 [32m+[m
+ android/local.properties                                                    |     5 [32m+[m
+ android/settings.gradle                                                     |    28 [32m+[m
+ assets/audio/focus/forest.mp3                                               |   Bin [31m0[m -> [32m1307883[m bytes
+ assets/audio/focus/ocean.mp3                                                |   Bin [31m0[m -> [32m406256[m bytes
+ assets/audio/focus/rain.mp3                                                 |   Bin [31m0[m -> [32m683520[m bytes
+ assets/images/.gitkeep                                                      |     0
+ assets/images/app-icon.png                                                  |   Bin [31m0[m -> [32m1350510[m bytes
+ assets/translations/.gitkeep                                                |     0
+ diagnose-gemini-env.js                                                      |    43 [32m+[m
+ favicon.png                                                                 |   Bin [31m0[m -> [32m1038671[m bytes
+ firebase-applet-config.json                                                 |    10 [32m+[m
+ firebase-blueprint.json                                                     |   104 [32m+[m
+ firestore.rules                                                             |    54 [32m+[m
+ index.html                                                                  |    14 [32m+[m
+ ios/.gitignore                                                              |    30 [32m+[m
+ ios/Podfile                                                                 |    28 [32m+[m
+ ios/Runner/AppDelegate.swift                                                |    13 [32m+[m
+ ios/Runner/GeneratedPluginRegistrant.h                                      |    19 [32m+[m
+ ios/Runner/GeneratedPluginRegistrant.m                                      |    28 [32m+[m
+ ios/Runner/Info.plist                                                       |    51 [32m+[m
+ lib/app.dart                                                                |   107 [32m+[m
+ lib/core/constants/colors.dart                                              |    12 [32m+[m
+ lib/core/services/firebase_service.dart                                     |   487 [32m++++[m
+ lib/core/theme/app_theme.dart                                               |    95 [32m+[m
+ lib/core/theme/nexii_colors.dart                                            |    64 [32m+[m
+ lib/core/utils/helpers.dart                                                 |    17 [32m+[m
+ lib/core/widgets/adaptive_living_widgets.dart                               |   187 [32m++[m
+ lib/experience/experience_engine.dart                                       |   181 [32m++[m
+ lib/experience/models/experience_action.dart                                |    31 [32m+[m
+ lib/experience/models/experience_mode.dart                                  |    21 [32m+[m
+ lib/experience/models/experience_state.dart                                 |    40 [32m+[m
+ lib/intelligence/context/context_snapshot_builder.dart                      |   193 [32m++[m
+ lib/intelligence/engines/n1_decision_engine.dart                            |   238 [32m++[m
+ lib/intelligence/models/intelligence_models.dart                            |   361 [32m+++[m
+ lib/intelligence/nodes/anticipate_node.dart                                 |    90 [32m+[m
+ lib/intelligence/nodes/aura_node.dart                                       |    79 [32m+[m
+ lib/intelligence/nodes/intelligence_node.dart                               |    11 [32m+[m
+ lib/intelligence/nodes/living_goals_node.dart                               |    96 [32m+[m
+ lib/intelligence/nodes/measure_node.dart                                    |    74 [32m+[m
+ lib/intelligence/nodes/observe_node.dart                                    |   118 [32m+[m
+ lib/intelligence/nodes/pulse_node.dart                                      |   101 [32m+[m
+ lib/intelligence/nodes/recommend_node.dart                                  |   108 [32m+[m
+ lib/intelligence/nodes/understand_node.dart                                 |    90 [32m+[m
+ lib/intelligence/services/intelligence_service.dart                         |   162 [32m++[m
+ lib/main.dart                                                               |    47 [32m+[m
+ lib/navigation/bottom_navigation.dart                                       |    23 [32m+[m
+ lib/providers/app_state_provider.dart                                       |  2519 [32m+++++++++++++++++++++[m
+ lib/screens/agenda_screen.dart                                              |   661 [32m++++++[m
+ lib/screens/aura_screen.dart                                                |   710 [32m++++++[m
+ lib/screens/budget_screen.dart                                              |   859 [32m+++++++[m
+ lib/screens/coach_screen.dart                                               |  1081 [32m+++++++++[m
+ lib/screens/focus_screen.dart                                               |   928 [32m++++++++[m
+ lib/screens/goals_screen.dart                                               |   704 [32m++++++[m
+ lib/screens/home_screen.dart                                                |  1375 [32m++++++++++++[m
+ lib/screens/hub_screen.dart                                                 |   230 [32m++[m
+ lib/screens/login_screen.dart                                               |   458 [32m++++[m
+ lib/screens/missions_screen.dart                                            |   645 [32m++++++[m
+ lib/screens/onboarding_screen.dart                                          |   574 [32m+++++[m
+ lib/screens/profile_screen.dart                                             |  1793 [32m+++++++++++++++[m
+ lib/screens/progression_screen.dart                                         |  1089 [32m+++++++++[m
+ lib/screens/tasks_screen.dart                                               |  1252 [32m+++++++++++[m
+ linux/CMakeLists.txt                                                        |     5 [32m+[m
+ linux/flutter/ephemeral/.plugin_symlinks/audioplayers_linux                 |     1 [32m+[m
+ linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux                |     1 [32m+[m
+ linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux           |     1 [32m+[m
+ linux/flutter/ephemeral/generated_config.cmake                              |    21 [32m+[m
+ linux/flutter/generated_plugin_registrant.cc                                |    15 [32m+[m
+ linux/flutter/generated_plugin_registrant.h                                 |    15 [32m+[m
+ linux/flutter/generated_plugins.cmake                                       |    24 [32m+[m
+ linux/main.cc                                                               |     6 [32m+[m
+ macos/Flutter/GeneratedPluginRegistrant.swift                               |    14 [32m+[m
+ macos/Flutter/ephemeral/Flutter-Generated.xcconfig                          |    12 [32m+[m
+ macos/Flutter/ephemeral/flutter_export_environment.sh                       |    13 [32m+[m
+ macos/Flutter/ephemeral/flutter_native_integration.env                      |    11 [32m+[m
+ macos/Runner/AppDelegate.swift                                              |     9 [32m+[m
+ macos/Runner/Info.plist                                                     |    30 [32m+[m
+ metadata.json                                                               |     6 [32m+[m
+ package-lock.json                                                           |  5231 [32m+++++++++++++++++++++++++++++++++++++++++++[m
+ package.json                                                                |    40 [32m+[m
+ pubspec.lock                                                                |   647 [32m++++++[m
+ pubspec.yaml                                                                |    36 [32m+[m
+ server.ts                                                                   |   410 [32m++++[m
+ src/App.tsx                                                                 |  7444 [32m+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++[m
+ src/assets/images/app_icon_1784016612483.jpg                                |   Bin [31m0[m -> [32m1038671[m bytes
+ src/assets/images/app_icon_new_1784358474277.jpg                            |   Bin [31m0[m -> [32m570013[m bytes
+ src/assets/images/app_icon_new_1784445050299.jpg                            |   Bin [31m0[m -> [32m267036[m bytes
+ src/data/flutter_files.ts                                                   | 18535 [32m+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++[m
+ src/firebase.ts                                                             |     9 [32m+[m
+ src/index.css                                                               |     3 [32m+[m
+ src/main.tsx                                                                |    10 [32m+[m
+ sync_flutter_files.cjs                                                      |    79 [32m+[m
+ test/agenda_screen_test.dart                                                |    50 [32m+[m
+ test/coach_test.dart                                                        |    46 [32m+[m
+ test/experience_engine_test.dart                                            |   377 [32m++++[m
+ test/focus_experience_test.dart                                             |   680 [32m++++++[m
+ test/focus_screen_test.dart                                                 |    42 [32m+[m
+ test/goals_screen_test.dart                                                 |    56 [32m+[m
+ test/home_screen_test.dart                                                  |   364 [32m+++[m
+ test/intelligence_consolidation_test.dart                                   |   634 [32m++++++[m
+ test/living_goals_production_test.dart                                      |   414 [32m++++[m
+ test/missions_screen_test.dart                                              |    56 [32m+[m
+ test/pulse_production_test.dart                                             |   391 [32m++++[m
+ test/tasks_experience_test.dart                                             |   470 [32m++++[m
+ test/tasks_screen_test.dart                                                 |   196 [32m++[m
+ test/understand_production_test.dart                                        |   551 [32m+++++[m
+ test/widget_test.dart                                                       |   597 [32m+++++[m
+ tsconfig.json                                                               |    26 [32m+[m
+ vite.config.ts                                                              |    22 [32m+[m
+ web/_redirects                                                              |     1 [32m+[m
+ web/favicon.png                                                             |   Bin [31m0[m -> [32m1038671[m bytes
+ web/icons/Icon-192.png                                                      |   Bin [31m0[m -> [32m977942[m bytes
+ web/icons/Icon-512.png                                                      |   Bin [31m0[m -> [32m977942[m bytes
+ web/index.html                                                              |   294 [32m+++[m
+ web/manifest.json                                                           |    23 [32m+[m
+ windows/CMakeLists.txt                                                      |     6 [32m+[m
+ windows/flutter/generated_plugin_registrant.cc                              |    11 [32m+[m
+ windows/flutter/generated_plugin_registrant.h                               |    15 [32m+[m
+ windows/flutter/generated_plugins.cmake                                     |    23 [32m+[m
+ windows/runner/CMakeLists.txt                                               |     6 [32m+[m
+ windows/runner/main.cpp                                                     |     8 [32m+[m
+ windows/runner/utils.cpp                                                    |     1 [32m+[m
+ 155 files changed, 57643 insertions(+)

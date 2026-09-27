@@ -1,0 +1,6 @@
+{
+  "name": "Nexii",
+  "description": "Interactive prototype and modular Flutter architecture foundation explorer for the Nexii productivity, well-being, and finance app.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
